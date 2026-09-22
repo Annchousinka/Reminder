@@ -1,6 +1,6 @@
 /* ============================================================
    ПРИЛОЖЕНИЕ «НАПОМИНАНИЯ И ЛЕКАРСТВА»
-   С точным временем приёмов и отметками в трекере
+   С отметками по датам и навигацией по неделям
    ============================================================ */
 
 // ============ БАЗА ДАННЫХ (IndexedDB) ============
@@ -79,6 +79,44 @@ function форматДаты(ts) {
   return new Date(ts).toLocaleDateString('ru', { day: 'numeric', month: 'short' });
 }
 
+// 🆕 Получить ISO-дату (YYYY-MM-DD) без сдвига часового пояса
+function датаISO(дата) {
+  const г = дата.getFullYear();
+  const м = String(дата.getMonth() + 1).padStart(2, '0');
+  const д = String(дата.getDate()).padStart(2, '0');
+  return `${г}-${м}-${д}`;
+}
+
+// 🆕 Получить даты недели (Пн–Вс) для указанной опорной даты
+function получитьДатыНедели(опорнаяДата) {
+  const день = опорнаяДата.getDay() === 0 ? 7 : опорнаяДата.getDay();
+  const пн = new Date(опорнаяДата);
+  пн.setDate(опорнаяДата.getDate() - (день - 1));
+  пн.setHours(0, 0, 0, 0);
+
+  const даты = {};
+  for (let i = 1; i <= 7; i++) {
+    const д = new Date(пн);
+    д.setDate(пн.getDate() + (i - 1));
+    д.setHours(0, 0, 0, 0);
+    даты[i] = д;
+  }
+  return даты;
+}
+
+// ============ НАВИГАЦИЯ ПО НЕДЕЛЯМ ============
+let смещениеНедели = 0; // 0 = текущая, -1 = прошлая, +1 = следующая
+
+function сменитьНеделю(дельта) {
+  смещениеНедели += дельта;
+  обновитьТаблицу();
+}
+
+function сброситьНеделю() {
+  смещениеНедели = 0;
+  обновитьТаблицу();
+}
+
 // ============ НАПОМИНАНИЯ ============
 let текущийИнтервал = 60;
 let текущееФото = null;
@@ -91,7 +129,7 @@ document.querySelectorAll('.interval').forEach(btn => {
     btn.classList.add('active');
     текущийИнтервал = parseInt(btn.dataset.мин);
     const когда = new Date(Date.now() + текущийИнтервал * 60000);
-    document.getElementById('дата').value = когда.toISOString().slice(0, 10);
+    document.getElementById('дата').value = датаISO(когда);
     document.getElementById('время').value =
       String(когда.getHours()).padStart(2, '0') + ':' +
       String(когда.getMinutes()).padStart(2, '0');
@@ -130,7 +168,7 @@ async function открытьНапоминание(id) {
   document.getElementById('док-метка').textContent = н.документ ? '✓' : '';
 
   const д = new Date(н.когда);
-  document.getElementById('дата').value = д.toISOString().slice(0, 10);
+  document.getElementById('дата').value = датаISO(д);
   document.getElementById('время').value =
     String(д.getHours()).padStart(2, '0') + ':' +
     String(д.getMinutes()).padStart(2, '0');
@@ -338,6 +376,9 @@ async function сохранитьЛекарство() {
 
   редактируемоеЛекарствоId = null;
 
+  // Возвращаемся к текущей неделе
+  смещениеНедели = 0;
+
   document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
   document.querySelector('.tab[data-screen="screen-tracker"]')?.classList.add('active');
   перейти('screen-tracker');
@@ -419,13 +460,13 @@ async function запланироватьЛекарство(л) {
       рег.active.postMessage({
         тип: 'ЗАПЛАНИРОВАТЬ',
         напоминание: {
-          id: `${л.id}-${д}-${вр}`,
+          id: `${л.id}-${датаISO(дата)}-${вр}`,
           текст: `💊 ${л.название}`,
           подтекст: `${вр} · ${л.дозировка}`,
           когда: когда.getTime(),
           лекарствоId: л.id,
           приём: вр,
-          метка: `${дата.toISOString().slice(0,10)}-${вр}`
+          метка: `${датаISO(дата)}-${вр}`
         },
         задержка
       });
@@ -469,19 +510,23 @@ async function удалитьЛекарство(id) {
 }
 
 // ============ ОТМЕТКИ ПРИЁМА ============
-async function отметитьПриёмДля(лId, время, дата) {
+// Ключ теперь всегда: "YYYY-MM-DD-приём" — привязан к конкретной дате
+async function отметитьПриёмДля(лId, время, датаСтрока) {
   const все = await получитьВсе('лекарства');
   const л = все.find(x => x.id === лId);
   if (!л) return;
 
-  const ключ = `${дата}-${время}`;
+  const ключ = `${датаСтрока}-${время}`;
   л.принято[ключ] = !л.принято[ключ];
   await сохранить('лекарства', л);
 
-  // Отменяем уведомление, если лекарство отмечено как выпитое
+  // Отменяем уведомление, если отмечено как выпитое
   if (л.принято[ключ]) {
     const рег = await navigator.serviceWorker.ready;
-    рег.active.postMessage({ тип: 'ОТМЕНИТЬ', id: `${л.id}-${дата}-${время}` });
+    рег.active.postMessage({
+      тип: 'ОТМЕНИТЬ',
+      id: `${л.id}-${датаСтрока}-${время}`
+    });
   }
 
   await обновитьТаблицу();
@@ -506,7 +551,7 @@ async function отметитьПриём(лId) {
   }).join('\n');
 
   const выбор = prompt(
-    `Что отметить для «${л.название}»?\n\n${варианты}\n\nВведите номер:`
+    `Что отметить для «${л.название}» (${сегодня})?\n\n${варианты}\n\nВведите номер:`
   );
   const индекс = parseInt(выбор) - 1;
   if (индекс >= 0 && индекс < л.времена.length) {
@@ -586,51 +631,112 @@ function карточкаНапоминания(н, сейчас) {
 async function обновитьТаблицу() {
   const все = await получитьВсе('лекарства');
   const сегодня = сегодняISO();
-  const деньСегодня = new Date().getDay() === 0 ? 7 : new Date().getDay();
 
-  // ===== ТАБЛИЦА =====
+  // Определяем опорную дату с учётом смещения недели
+  const опорная = new Date();
+  опорная.setDate(опорная.getDate() + смещениеНедели * 7);
+
+  const датыНедели = получитьДатыНедели(опорная);
+  const датаСегодня = new Date();
+  const деньСегодня = датаСегодня.getDay() === 0 ? 7 : датаСегодня.getDay();
+
+  // === Навигация по неделям ===
+  const navEl = document.querySelector('.week-nav');
+  const названиеEl = document.getElementById('название-недели');
+  const диапазонEl = document.getElementById('диапазон-недели');
+
+  if (названиеEl) {
+    if (смещениеНедели === 0) названиеEl.textContent = 'Текущая неделя';
+    else if (смещениеНедели === -1) названиеEl.textContent = 'Прошлая неделя';
+    else if (смещениеНедели === 1) названиеEl.textContent = 'Следующая неделя';
+    else if (смещениеНедели < 0) названиеEl.textContent = `${Math.abs(смещениеНедели)} нед. назад`;
+    else названиеEl.textContent = `Через ${смещениеНедели} нед.`;
+
+    const пн = датыНедели[1];
+    const вс = датыНедели[7];
+    const ф = (д) => `${String(д.getDate()).padStart(2,'0')}.${String(д.getMonth()+1).padStart(2,'0')}`;
+    диапазонEl.textContent = `${ф(пн)} — ${ф(вс)}`;
+  }
+  navEl?.classList.toggle('текущая', смещениеНедели === 0);
+
+  // === Шапка таблицы с датами ===
+  const шапка = document.getElementById('шапка-таблицы');
+  if (шапка) {
+    шапка.querySelectorAll('th[data-day]').forEach(th => {
+      const день = parseInt(th.dataset.day);
+      const дата = датыНедели[день];
+      const буквы = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+      const дд = String(дата.getDate()).padStart(2, '0');
+      const мм = String(дата.getMonth() + 1).padStart(2, '0');
+      th.innerHTML = `${буквы[день-1]}<span class="дата">${дд}.${мм}</span>`;
+      th.classList.toggle('сегодня', смещениеНедели === 0 && день === деньСегодня);
+    });
+  }
+
+  // === Заполняем ячейки ===
   document.querySelectorAll('#таблица-лекарств td[data-day]').forEach(td => {
     const день = parseInt(td.dataset.day);
     const время = td.dataset.time;
+    const дата = датыНедели[день];
+    const датаСтр = датаISO(дата);
+
+    // Лекарства, которые надо принимать в этот день недели и время
     const подходящие = все.filter(л =>
       л.дни.includes(день) && л.времена.includes(время)
     );
 
-    const всеОтмечены = подходящие.length > 0 && подходящие.every(л =>
-      л.принято[`${сегодня}-${время}`]
-    );
+    // Отбираем активные в эту конкретную дату (курс ещё идёт)
+    const активные = подходящие.filter(л => {
+      const старт = new Date(л.датаНачала);
+      старт.setHours(0, 0, 0, 0);
+      const конец = new Date(старт);
+      конец.setDate(конец.getDate() + л.днейКурса - 1);
+      конец.setHours(23, 59, 59, 999);
+      const д = new Date(дата);
+      д.setHours(12, 0, 0, 0);
+      return д >= старт && д <= конец;
+    });
 
-    td.innerHTML = подходящие.map(л => {
+    // Пилюли с названием и временем приёма
+    td.innerHTML = активные.map(л => {
       const [ч, м] = (л.времяТочное?.[время] || '').split(':');
-      const выпито = л.принято[`${сегодня}-${время}`];
+      const выпито = л.принято[`${датаСтр}-${время}`];
       return `<span class="pill" style="${выпито ? 'opacity:0.4' : ''}">${экранировать(л.название.slice(0, 3))}
         ${ч ? `<span class="pill-time">${ч}:${м}</span>` : ''}
       </span>`;
     }).join('<br>');
 
-    td.classList.toggle('done',
-      день === деньСегодня && всеОтмечены
+    // Все ли активные отмечены именно на ЭТУ дату
+    const всеОтмечены = активные.length > 0 && активные.every(л =>
+      л.принято[`${датаСтр}-${время}`]
     );
 
+    td.classList.toggle('done', всеОтмечены);
+    td.classList.toggle('неактивна', активные.length === 0);
+
+    // Клик — отмечаем на конкретную дату
     td.onclick = () => {
-      if (подходящие.length === 0) return;
-      if (подходящие.length === 1) {
-        отметитьПриёмДля(подходящие[0].id, время, сегодня);
+      if (активные.length === 0) return;
+
+      if (активные.length === 1) {
+        отметитьПриёмДля(активные[0].id, время, датаСтр);
       } else {
-        const имена = подходящие.map((л, i) => `${i + 1}. ${л.название}`).join('\n');
-        const выбор = prompt(`Какое лекарство отметить?\n${имена}\n\nВведите номер:`);
+        const имена = активные.map((л, i) => `${i + 1}. ${л.название}`).join('\n');
+        const выбор = prompt(
+          `Какое лекарство отметить на ${датаСтр} (${время})?\n${имена}\n\nВведите номер:`
+        );
         const индекс = parseInt(выбор) - 1;
-        if (индекс >= 0 && индекс < подходящие.length) {
-          отметитьПриёмДля(подходящие[индекс].id, время, сегодня);
+        if (индекс >= 0 && индекс < активные.length) {
+          отметитьПриёмДля(активные[индекс].id, время, датаСтр);
         }
       }
     };
   });
 
-  // ===== СЕГОДНЯ =====
+  // === Сегодня ===
   await обновитьСегодня(все, сегодня, деньСегодня);
 
-  // ===== СПИСОК ЛЕКАРСТВ =====
+  // === Список лекарств ===
   const список = document.getElementById('список-лекарств');
   if (все.length === 0) {
     список.innerHTML = '<p class="muted">Пока нет лекарств. Нажмите «+» сверху.</p>';
@@ -669,10 +775,14 @@ async function обновитьСегодня(все, сегодня, деньС
 
   const активные = все.filter(л => {
     if (!л.дни.includes(деньСегодня)) return false;
-    const старт = new Date(л.датаНачала).getTime();
-    const конец = старт + л.днейКурса * 86400000;
-    const сейчас = new Date(сегодня).getTime();
-    return сейчас >= старт - 86400000 && сейчас <= конец;
+    const старт = new Date(л.датаНачала);
+    старт.setHours(0, 0, 0, 0);
+    const конец = new Date(старт);
+    конец.setDate(конец.getDate() + л.днейКурса - 1);
+    конец.setHours(23, 59, 59, 999);
+    const с = new Date(сегодня);
+    с.setHours(12, 0, 0, 0);
+    return с >= старт && с <= конец;
   });
 
   if (активные.length === 0) {
@@ -756,7 +866,6 @@ async function экспортPDF() {
     return;
   }
 
-  // Считаем общую приверженность
   let всего = 0, принято = 0;
   все.forEach(л => {
     всего += л.днейКурса * л.времена.length;
