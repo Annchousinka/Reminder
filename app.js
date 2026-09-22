@@ -85,6 +85,9 @@ function открытьФормуНапоминания() {
   document.getElementById('фото-метка').textContent = '';
   document.getElementById('док-метка').textContent = '';
   document.getElementById('блок-часов').classList.add('hidden');
+  document.querySelector('#screen-form h1').textContent = 'Новое напоминание';
+  // скрываем "Удалить" при создании
+  document.querySelector('#screen-form .row-btn.red').style.display = 'none';
   перейти('screen-form');
 }
 
@@ -136,6 +139,12 @@ async function сохранитьНапоминание() {
     когда = Date.now() + текущийИнтервал * 60000;
   }
 
+  // 🆕 Если редактируем — отменяем старое уведомление
+  if (редактируемоеId) {
+    const рег = await navigator.serviceWorker.ready;
+    рег.active.postMessage({ тип: 'ОТМЕНИТЬ', id: редактируемоеId });
+  }
+
   const н = {
     id: редактируемоеId || crypto.randomUUID(),
     текст,
@@ -149,9 +158,9 @@ async function сохранитьНапоминание() {
 
   await сохранить('напоминания', н);
   await запланироватьУведомление(н);
+  редактируемоеId = null;
   перейти('screen-home');
 }
-
 async function удалитьНапоминание() {
   if (редактируемоеId) {
     await удалитьИз('напоминания', редактируемоеId);
@@ -267,17 +276,24 @@ async function открытьНапоминание(id) {
   const все = await получитьВсе('напоминания');
   const н = все.find(x => x.id === id);
   if (!н) return;
+
   редактируемоеId = id;
   document.getElementById('текст').value = н.текст;
   document.getElementById('важное').checked = н.важное;
   текущееФото = н.фото;
   текущийДокумент = н.документ;
+
   const д = new Date(н.когда);
   document.getElementById('дата').value = д.toISOString().slice(0, 10);
   document.getElementById('время').value =
     String(д.getHours()).padStart(2, '0') + ':' +
     String(д.getMinutes()).padStart(2, '0');
   показатьВремя();
+
+  document.querySelector('#screen-form h1').textContent = 'Редактировать';
+  // показываем "Удалить" только для существующих
+  document.querySelector('#screen-form .row-btn.red').style.display = 'flex';
+
   перейти('screen-form');
 }
 
@@ -451,6 +467,8 @@ async function отменитьУведомленияЛекарства(лId) {
 
 async function обновитьТаблицу() {
   const все = await получитьВсе('лекарства');
+
+  // ---- Таблица Пн-Вс × Утро-День-Вечер ----
   document.querySelectorAll('#таблица-лекарств td[data-day]').forEach(td => {
     const день = parseInt(td.dataset.day);
     const время = td.dataset.time;
@@ -461,6 +479,71 @@ async function обновитьТаблицу() {
       .map(л => `<span class="pill">${экранировать(л.название.slice(0, 3))}</span>`)
       .join('<br>');
   });
+
+  // ---- 🆕 Список карточек лекарств ----
+  const список = document.getElementById('список-лекарств');
+  if (все.length === 0) {
+    список.innerHTML = '<p class="muted">Пока нет лекарств</p>';
+    return;
+  }
+
+  список.innerHTML = все.map(л => {
+    const принято = Object.values(л.принято).filter(Boolean).length;
+    const нужно = л.днейКурса * л.разВДень;
+    const прогресс = нужно ? Math.round((принято / нужно) * 100) : 0;
+
+    return `
+      <div class="card med-info" onclick="отметитьПриём('${л.id}')">
+        <div class="body">
+          <div class="title">💊 ${экранировать(л.название)}</div>
+          <div class="sub">${л.дозировка} · ${л.времена.join(', ')} · ${л.днейКурса} дн.</div>
+          <div class="sub">Принято: ${принято} из ${нужно} (${прогресс}%)</div>
+        </div>
+        <div class="actions">
+          <button class="icon-btn" onclick="event.stopPropagation(); редактироватьЛекарство('${л.id}')">✏️</button>
+          <button class="icon-btn red" onclick="event.stopPropagation(); удалитьЛекарство('${л.id}')">🗑</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 🆕 Редактировать лекарство
+async function редактироватьЛекарство(id) {
+  const все = await получитьВсе('лекарства');
+  const л = все.find(x => x.id === id);
+  if (л) открытьФормуЛекарства(л);
+}
+
+// 🆕 Удалить лекарство (+ все его напоминания)
+async function удалитьЛекарство(id) {
+  if (!confirm('Удалить это лекарство и все его напоминания?')) return;
+
+  await удалитьИз('лекарства', id);
+  await отменитьУведомленияЛекарства(id);
+
+  // Обновляем UI
+  await обновитьТаблицу();
+  await обновитьБлижайшие();
+  await обновитьСтатистику();
+}
+
+// 🆕 Отметить приём прямо из карточки
+async function отметитьПриём(лId) {
+  const все = await получитьВсе('лекарства');
+  const л = все.find(x => x.id === лId);
+  if (!л) return;
+
+  const сегодня = new Date().toISOString().slice(0, 10);
+  const время = prompt('Какое время приёма отметить? (утро / день / вечер)');
+  if (!время || !л.времена.includes(время)) return;
+
+  const ключ = `${сегодня}-${время}`;
+  л.принято[ключ] = !л.принято[ключ];
+  await сохранить('лекарства', л);
+
+  await обновитьТаблицу();
+  await обновитьСтатистику();
 }
 
 // ============ СТАТИСТИКА ============
