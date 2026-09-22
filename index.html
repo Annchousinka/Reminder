@@ -46,12 +46,10 @@
     </header>
 
     <main>
-      <!-- Текст -->
       <div class="field">
         <textarea id="текст" placeholder="О чём напомнить?" rows="2"></textarea>
       </div>
 
-      <!-- Интервалы -->
       <label class="section-title">Быстрый интервал</label>
       <div class="intervals">
         <button class="interval" data-мин="30">30 мин</button>
@@ -60,7 +58,6 @@
         <button class="interval" data-мин="1440">1 день</button>
       </div>
 
-      <!-- Часы -->
       <button class="row-btn" onclick="показатьЧасы()">
         <span>🕐</span>
         <span>Часы — дата и время</span>
@@ -71,7 +68,6 @@
         <input type="time" id="время">
       </div>
 
-      <!-- Вложения -->
       <button class="row-btn" onclick="document.getElementById('фото').click()">
         <span>📷</span>
         <span>Прикрепить фото</span>
@@ -86,14 +82,12 @@
       </button>
       <input type="file" id="документ" hidden>
 
-      <!-- Важное -->
       <label class="row-btn">
         <span>❗️</span>
         <span>Очень важное</span>
         <input type="checkbox" id="важное" class="toggle">
       </label>
 
-      <!-- Удалить -->
       <button class="row-btn red" onclick="удалитьНапоминание()">
         <span>🗑</span>
         <span>Удалить</span>
@@ -110,13 +104,28 @@
     </header>
 
     <main>
+      <!-- Навигация по неделям -->
+      <div class="week-nav">
+        <button class="week-btn" onclick="сменитьНеделю(-1)">‹</button>
+        <button class="week-title" onclick="сброситьНеделю()">
+          <span id="название-недели">Текущая неделя</span>
+          <span id="диапазон-недели" class="week-range"></span>
+        </button>
+        <button class="week-btn" onclick="сменитьНеделю(1)">›</button>
+      </div>
+
       <div class="table-wrap">
         <table id="таблица-лекарств">
           <thead>
-            <tr>
+            <tr id="шапка-таблицы">
               <th></th>
-              <th>Пн</th><th>Вт</th><th>Ср</th>
-              <th>Чт</th><th>Пт</th><th>Сб</th><th>Вс</th>
+              <th data-day="1">Пн</th>
+              <th data-day="2">Вт</th>
+              <th data-day="3">Ср</th>
+              <th data-day="4">Чт</th>
+              <th data-day="5">Пт</th>
+              <th data-day="6">Сб</th>
+              <th data-day="7">Вс</th>
             </tr>
           </thead>
           <tbody>
@@ -130,7 +139,6 @@
         </table>
       </div>
 
-      <!-- Сегодня: быстрые отметки -->
       <h2>Сегодня — отметить приём</h2>
       <div id="сегодня-приёмы"></div>
 
