@@ -1,619 +1,206 @@
-{\rtf1\ansi\ansicpg1251\cocoartf2868
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
-\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#f2f2f7">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <title>Напоминания</title>
+</head>
+<body>
 
-\f0\fs24 \cf0 <!DOCTYPE html>\
-<html lang="ru">\
-<head>\
-    <meta charset="UTF-8">\
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">\
-    <title>\uc0\u1055 \u1086 \u1084 \u1086 \u1097 \u1085 \u1080 \u1082  \u1087 \u1086  \u1079 \u1072 \u1103 \u1074 \u1082 \u1072 \u1084 </title>\
-    <link rel="manifest" href="data:application/json;charset=utf-8,\{%22name%22:%22\uc0\u1055 \u1086 \u1084 \u1086 \u1097 \u1085 \u1080 \u1082 %20\u1079 \u1072 \u1103 \u1074 \u1086 \u1082 %22,%22short_name%22:%22\u1047 \u1072 \u1103 \u1074 \u1082 \u1080 %22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f4f7fb%22,%22theme_color%22:%22%232b7be4%22,%22icons%22:[\{%22src%22:%22data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22%3E%3Crect%20width=%22100%22%20height=%22100%22%20fill=%22%232b7be4%22/%3E%3Ctext%20x=%2225%22%20y=%2270%22%20font-size=%2260%22%20fill=%22white%22%3E%F0%9F%93%8B%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22%5D%7D">\
-    <style>\
-        /* \uc0\u1054 \u1041 \u1053 \u1059 \u1051 \u1045 \u1053 \u1048 \u1045  */\
-        * \{\
-            box-sizing: border-box;\
-            margin: 0;\
-            padding: 0;\
-        \}\
-        \
-        body \{\
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;\
-            background: #f0f4f8;\
-            color: #1a2634;\
-            padding: 16px;\
-            max-width: 700px;\
-            margin: 0 auto;\
-            min-height: 100vh;\
-        \}\
-\
-        /* \uc0\u1064 \u1040 \u1055 \u1050 \u1040  */\
-        .header \{\
-            display: flex;\
-            justify-content: space-between;\
-            align-items: center;\
-            margin-bottom: 20px;\
-        \}\
-        .header h1 \{\
-            font-size: 24px;\
-            font-weight: 700;\
-            color: #0b1a2b;\
-        \}\
-        .header .count-badge \{\
-            background: #2b7be4;\
-            color: white;\
-            padding: 6px 16px;\
-            border-radius: 30px;\
-            font-size: 14px;\
-            font-weight: 600;\
-        \}\
-\
-        /* SLA \uc0\u1050 \u1040 \u1056 \u1058 \u1054 \u1063 \u1050 \u1040  */\
-        .sla-card \{\
-            background: white;\
-            border-radius: 20px;\
-            padding: 20px 24px;\
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);\
-            margin-bottom: 24px;\
-            display: flex;\
-            justify-content: space-between;\
-            align-items: center;\
-            border: 1px solid #e2e8f0;\
-        \}\
-        .sla-card .label \{\
-            font-size: 16px;\
-            color: #5e6f7e;\
-            font-weight: 500;\
-        \}\
-        .sla-card .value \{\
-            font-size: 44px;\
-            font-weight: 700;\
-        \}\
-        .sla-card .value.good \{ color: #1ba35b; \}\
-        .sla-card .value.warning \{ color: #e68a2e; \}\
-        .sla-card .value.danger \{ color: #d14545; \}\
-\
-        /* \uc0\u1057 \u1055 \u1048 \u1057 \u1054 \u1050  \u1047 \u1040 \u1071 \u1042 \u1054 \u1050  */\
-        .ticket-list \{\
-            display: flex;\
-            flex-direction: column;\
-            gap: 10px;\
-            margin-bottom: 20px;\
-        \}\
-\
-        .ticket-item \{\
-            background: white;\
-            border-radius: 14px;\
-            padding: 14px 16px;\
-            border-left: 5px solid #cbd5e1;\
-            cursor: pointer;\
-            transition: all 0.15s;\
-            box-shadow: 0 1px 4px rgba(0,0,0,0.04);\
-            display: flex;\
-            justify-content: space-between;\
-            align-items: center;\
-        \}\
-        .ticket-item:active \{\
-            transform: scale(0.97);\
-            background: #f8fafc;\
-        \}\
-        .ticket-item.urgent \{ border-left-color: #d14545; background: #fef2f2; \}\
-        .ticket-item.warning \{ border-left-color: #e68a2e; background: #fffbeb; \}\
-        .ticket-item.normal \{ border-left-color: #1ba35b; background: #f0fdf4; \}\
-\
-        .ticket-info \{\
-            flex: 1;\
-        \}\
-        .ticket-title \{\
-            font-size: 16px;\
-            font-weight: 600;\
-            color: #0b1a2b;\
-            margin-bottom: 4px;\
-        \}\
-        .ticket-meta \{\
-            font-size: 13px;\
-            color: #5e6f7e;\
-            display: flex;\
-            align-items: center;\
-            gap: 10px;\
-            flex-wrap: wrap;\
-        \}\
-        .ticket-type \{\
-            background: #e2e8f0;\
-            padding: 2px 10px;\
-            border-radius: 20px;\
-            font-size: 12px;\
-            font-weight: 500;\
-        \}\
-        .ticket-deadline \{\
-            font-weight: 600;\
-            font-size: 14px;\
-            padding: 4px 12px;\
-            border-radius: 30px;\
-            white-space: nowrap;\
-        \}\
-        .ticket-deadline.urgent \{ background: #d14545; color: white; \}\
-        .ticket-deadline.warning \{ background: #e68a2e; color: white; \}\
-        .ticket-deadline.normal \{ background: #1ba35b; color: white; \}\
-\
-        /* \uc0\u1050 \u1053 \u1054 \u1055 \u1050 \u1048  */\
-        .btn-add \{\
-            width: 100%;\
-            padding: 16px;\
-            background: #2b7be4;\
-            color: white;\
-            border: none;\
-            border-radius: 60px;\
-            font-size: 18px;\
-            font-weight: 600;\
-            cursor: pointer;\
-            transition: background 0.2s;\
-            box-shadow: 0 4px 12px rgba(43,123,228,0.3);\
-        \}\
-        .btn-add:active \{\
-            background: #1a5bb5;\
-            transform: scale(0.97);\
-        \}\
-\
-        /* \uc0\u1060 \u1054 \u1056 \u1052 \u1040  \u1044 \u1054 \u1041 \u1040 \u1042 \u1051 \u1045 \u1053 \u1048 \u1071  */\
-        .form-container \{\
-            background: white;\
-            border-radius: 20px;\
-            padding: 20px;\
-            margin-bottom: 20px;\
-            border: 1px solid #e2e8f0;\
-            display: none;\
-        \}\
-        .form-container.open \{\
-            display: block;\
-        \}\
-        .form-container input,\
-        .form-container select \{\
-            width: 100%;\
-            padding: 12px 14px;\
-            border: 1px solid #d1d9e6;\
-            border-radius: 12px;\
-            font-size: 16px;\
-            margin-bottom: 10px;\
-            background: #fafcfe;\
-        \}\
-        .form-container input:focus,\
-        .form-container select:focus \{\
-            outline: 2px solid #2b7be4;\
-            border-color: transparent;\
-        \}\
-        .form-row \{\
-            display: flex;\
-            gap: 10px;\
-        \}\
-        .form-row input \{ flex: 1; \}\
-        .btn-save \{\
-            background: #1ba35b;\
-            color: white;\
-            border: none;\
-            padding: 14px;\
-            border-radius: 40px;\
-            font-weight: 600;\
-            font-size: 16px;\
-            width: 100%;\
-            cursor: pointer;\
-            margin-top: 4px;\
-        \}\
-        .btn-cancel \{\
-            background: transparent;\
-            color: #5e6f7e;\
-            border: none;\
-            padding: 12px;\
-            font-size: 14px;\
-            width: 100%;\
-            cursor: pointer;\
-        \}\
-\
-        /* \uc0\u1052 \u1054 \u1044 \u1040 \u1051 \u1050 \u1040  */\
-        .modal-overlay \{\
-            display: none;\
-            position: fixed;\
-            inset: 0;\
-            background: rgba(0,0,0,0.35);\
-            backdrop-filter: blur(3px);\
-            align-items: flex-end;\
-            justify-content: center;\
-            padding: 20px;\
-            z-index: 999;\
-        \}\
-        .modal-overlay.active \{\
-            display: flex;\
-        \}\
-        .modal-box \{\
-            background: white;\
-            width: 100%;\
-            max-width: 500px;\
-            border-radius: 28px 28px 16px 16px;\
-            padding: 28px 24px 24px;\
-            box-shadow: 0 20px 50px rgba(0,0,0,0.2);\
-            animation: slideUp 0.25s ease;\
-        \}\
-        @keyframes slideUp \{\
-            from \{ transform: translateY(40px); opacity: 0; \}\
-            to \{ transform: translateY(0); opacity: 1; \}\
-        \}\
-        .modal-box h2 \{\
-            font-size: 20px;\
-            margin-bottom: 6px;\
-        \}\
-        .modal-meta \{\
-            display: flex;\
-            justify-content: space-between;\
-            font-size: 14px;\
-            color: #5e6f7e;\
-            margin-bottom: 16px;\
-        \}\
-        .modal-hint \{\
-            background: #f0f7ff;\
-            border-radius: 14px;\
-            padding: 16px;\
-            border-left: 4px solid #2b7be4;\
-            font-size: 15px;\
-            line-height: 1.6;\
-            margin-bottom: 16px;\
-        \}\
-        .modal-hint strong \{\
-            color: #0b1a2b;\
-        \}\
-        .btn-close \{\
-            width: 100%;\
-            padding: 14px;\
-            background: #eef2f6;\
-            border: none;\
-            border-radius: 40px;\
-            font-size: 16px;\
-            font-weight: 600;\
-            color: #1a2634;\
-            cursor: pointer;\
-        \}\
-        .btn-close:active \{\
-            background: #dce2ea;\
-        \}\
-\
-        .empty-state \{\
-            text-align: center;\
-            padding: 40px 20px;\
-            color: #7a8b9c;\
-            font-size: 16px;\
-        \}\
-        .empty-state span \{\
-            font-size: 48px;\
-            display: block;\
-            margin-bottom: 12px;\
-        \}\
-    </style>\
-</head>\
-<body>\
-\
-<!-- \uc0\u1064 \u1040 \u1055 \u1050 \u1040  -->\
-<div class="header">\
-    <h1>\uc0\u1052 \u1086 \u1080  \u1079 \u1072 \u1103 \u1074 \u1082 \u1080 </h1>\
-    <span class="count-badge" id="totalCount">0</span>\
-</div>\
-\
-<!-- SLA -->\
-<div class="sla-card">\
-    <span class="label">\uc0\u1057 \u1086 \u1073 \u1083 \u1102 \u1076 \u1077 \u1085 \u1080 \u1077  SLA</span>\
-    <span class="value good" id="slaValue">100%</span>\
-</div>\
-\
-<!-- \uc0\u1060 \u1054 \u1056 \u1052 \u1040  \u1044 \u1054 \u1041 \u1040 \u1042 \u1051 \u1045 \u1053 \u1048 \u1071  -->\
-<div class="form-container" id="formContainer">\
-    <input type="text" id="inputTitle" placeholder="\uc0\u1053 \u1072 \u1079 \u1074 \u1072 \u1085 \u1080 \u1077  \u1079 \u1072 \u1103 \u1074 \u1082 \u1080 " />\
-    <select id="inputType">\
-        <option value="\uc0\u1057 \u1086 \u1075 \u1083 \u1072 \u1089 \u1086 \u1074 \u1072 \u1085 \u1080 \u1077 ">\u1057 \u1086 \u1075 \u1083 \u1072 \u1089 \u1086 \u1074 \u1072 \u1085 \u1080 \u1077 </option>\
-        <option value="IT-\uc0\u1080 \u1085 \u1094 \u1080 \u1076 \u1077 \u1085 \u1090 ">IT-\u1080 \u1085 \u1094 \u1080 \u1076 \u1077 \u1085 \u1090 </option>\
-        <option value="\uc0\u1041 \u1102 \u1076 \u1078 \u1077 \u1090 ">\u1041 \u1102 \u1076 \u1078 \u1077 \u1090 </option>\
-        <option value="\uc0\u1050 \u1072 \u1076 \u1088 \u1099 ">\u1050 \u1072 \u1076 \u1088 \u1099 </option>\
-        <option value="\uc0\u1070 \u1088 \u1080 \u1089 \u1090 \u1099 ">\u1070 \u1088 \u1080 \u1089 \u1090 \u1099 </option>\
-    </select>\
-    <div class="form-row">\
-        <input type="date" id="inputDate" />\
-    </div>\
-    <button class="btn-save" id="btnSave">\uc0\u1044 \u1086 \u1073 \u1072 \u1074 \u1080 \u1090 \u1100  \u1079 \u1072 \u1103 \u1074 \u1082 \u1091 </button>\
-    <button class="btn-cancel" id="btnCancel">\uc0\u1054 \u1090 \u1084 \u1077 \u1085 \u1072 </button>\
-</div>\
-\
-<!-- \uc0\u1057 \u1055 \u1048 \u1057 \u1054 \u1050  \u1047 \u1040 \u1071 \u1042 \u1054 \u1050  -->\
-<div class="ticket-list" id="ticketList"></div>\
-\
-<!-- \uc0\u1050 \u1053 \u1054 \u1055 \u1050 \u1040  \u1044 \u1054 \u1041 \u1040 \u1042 \u1048 \u1058 \u1068  -->\
-<button class="btn-add" id="btnShowForm">\uc0\u1053 \u1086 \u1074 \u1072 \u1103  \u1079 \u1072 \u1103 \u1074 \u1082 \u1072 </button>\
-\
-<!-- \uc0\u1052 \u1054 \u1044 \u1040 \u1051 \u1050 \u1040  -->\
-<div class="modal-overlay" id="modalOverlay">\
-    <div class="modal-box">\
-        <h2 id="modalTitle">\uc0\u1047 \u1072 \u1103 \u1074 \u1082 \u1072 </h2>\
-        <div class="modal-meta">\
-            <span id="modalType">\uc0\u1058 \u1080 \u1087 : \'97</span>\
-            <span id="modalDeadline">\uc0\u1057 \u1088 \u1086 \u1082 : \'97</span>\
-        </div>\
-        <div class="modal-hint">\
-            <strong>\uc0\u1055 \u1086 \u1076 \u1089 \u1082 \u1072 \u1079 \u1082 \u1072 </strong><br />\
-            <span id="modalHintText">\uc0\u1058 \u1077 \u1082 \u1089 \u1090  \u1087 \u1086 \u1076 \u1089 \u1082 \u1072 \u1079 \u1082 \u1080 </span>\
-        </div>\
-        <button class="btn-close" id="modalClose">\uc0\u1047 \u1072 \u1082 \u1088 \u1099 \u1090 \u1100 </button>\
-    </div>\
-</div>\
-\
-<script>\
-// ============================================================\
-// 1. \uc0\u1044 \u1040 \u1053 \u1053 \u1067 \u1045 \
-// ============================================================\
-const STORAGE_KEY = 'tickets_data';\
-\
-function getDefaultTickets() \{\
-    const d = new Date();\
-    return [\
-        \{ id: 1, title: '\uc0\u1057 \u1086 \u1075 \u1083 \u1072 \u1089 \u1086 \u1074 \u1072 \u1085 \u1080 \u1077  \u1073 \u1102 \u1076 \u1078 \u1077 \u1090 \u1072  \u1085 \u1072  Q3', type: '\u1057 \u1086 \u1075 \u1083 \u1072 \u1089 \u1086 \u1074 \u1072 \u1085 \u1080 \u1077 ', deadline: addDays(d, 3) \},\
-        \{ id: 2, title: '\uc0\u1047 \u1072 \u1082 \u1091 \u1087 \u1082 \u1072  \u1085 \u1086 \u1074 \u1086 \u1075 \u1086  \u1089 \u1077 \u1088 \u1074 \u1077 \u1088 \u1072 ', type: 'IT-\u1080 \u1085 \u1094 \u1080 \u1076 \u1077 \u1085 \u1090 ', deadline: addDays(d, 6) \},\
-        \{ id: 3, title: '\uc0\u1054 \u1092 \u1086 \u1088 \u1084 \u1083 \u1077 \u1085 \u1080 \u1077  \u1086 \u1090 \u1087 \u1091 \u1089 \u1082 \u1072  \u1048 \u1074 \u1072 \u1085 \u1086 \u1074 \u1072 ', type: '\u1050 \u1072 \u1076 \u1088 \u1099 ', deadline: addDays(d, 10) \},\
-        \{ id: 4, title: '\uc0\u1044 \u1086 \u1075 \u1086 \u1074 \u1086 \u1088  \u1089  \u1087 \u1086 \u1076 \u1088 \u1103 \u1076 \u1095 \u1080 \u1082 \u1086 \u1084 ', type: '\u1070 \u1088 \u1080 \u1089 \u1090 \u1099 ', deadline: addDays(d, 1) \}\
-    ];\
-\}\
-\
-function addDays(date, days) \{\
-    const result = new Date(date);\
-    result.setDate(result.getDate() + days);\
-    return result.toISOString().split('T')[0];\
-\}\
-\
-let tickets = [];\
-\
-function loadData() \{\
-    const raw = localStorage.getItem(STORAGE_KEY);\
-    if (raw) \{\
-        try \{ tickets = JSON.parse(raw); \} catch(e) \{ tickets = []; \}\
-    \}\
-    if (!tickets || tickets.length === 0) \{\
-        tickets = getDefaultTickets();\
-        saveData();\
-    \}\
-\}\
-\
-function saveData() \{\
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets));\
-\}\
-\
-// ============================================================\
-// 2. \uc0\u1042 \u1057 \u1055 \u1054 \u1052 \u1054 \u1043 \u1040 \u1058 \u1045 \u1051 \u1068 \u1053 \u1067 \u1045  \u1060 \u1059 \u1053 \u1050 \u1062 \u1048 \u1048 \
-// ============================================================\
-function daysLeft(deadlineStr) \{\
-    const now = new Date();\
-    now.setHours(0,0,0,0);\
-    const deadline = new Date(deadlineStr + 'T00:00:00');\
-    return Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));\
-\}\
-\
-function getStatus(days) \{\
-    if (days <= 1) return 'urgent';\
-    if (days <= 5) return 'warning';\
-    return 'normal';\
-\}\
-\
-function calcSLA() \{\
-    if (tickets.length === 0) return 100;\
-    let expired = 0;\
-    tickets.forEach(t => \{\
-        if (daysLeft(t.deadline) < 0) expired++;\
-    \});\
-    return Math.round(((tickets.length - expired) / tickets.length) * 100);\
-\}\
-\
-// ============================================================\
-// 3. \uc0\u1064 \u1040 \u1041 \u1051 \u1054 \u1053 \u1067  \u1055 \u1054 \u1044 \u1057 \u1050 \u1040 \u1047 \u1054 \u1050 \
-// ============================================================\
-function getHint(ticket) \{\
-    const days = daysLeft(ticket.deadline);\
-    let text = '';\
-\
-    switch (ticket.type) \{\
-        case '\uc0\u1057 \u1086 \u1075 \u1083 \u1072 \u1089 \u1086 \u1074 \u1072 \u1085 \u1080 \u1077 ':\
-            text = '\uc0\u1055 \u1088 \u1086 \u1094 \u1077 \u1089 \u1089  \u1089 \u1086 \u1075 \u1083 \u1072 \u1089 \u1086 \u1074 \u1072 \u1085 \u1080 \u1103 : \u1089 \u1085 \u1072 \u1095 \u1072 \u1083 \u1072  \u1085 \u1072 \u1087 \u1088 \u1072 \u1074 \u1080 \u1090 \u1100  \u1088 \u1091 \u1082 \u1086 \u1074 \u1086 \u1076 \u1080 \u1090 \u1077 \u1083 \u1102  \u1086 \u1090 \u1076 \u1077 \u1083 \u1072 , \u1079 \u1072 \u1090 \u1077 \u1084  \u1092 \u1080 \u1085 \u1072 \u1085 \u1089 \u1086 \u1074 \u1086 \u1084 \u1091  \u1076 \u1080 \u1088 \u1077 \u1082 \u1090 \u1086 \u1088 \u1091 . \u1055 \u1086 \u1089 \u1083 \u1077  \u1087 \u1086 \u1076 \u1087 \u1080 \u1089 \u1077 \u1081  \'97 \u1086 \u1090 \u1076 \u1072 \u1090 \u1100  \u1074  \u1082 \u1072 \u1085 \u1094 \u1077 \u1083 \u1103 \u1088 \u1080 \u1102 .';\
-            break;\
-        case 'IT-\uc0\u1080 \u1085 \u1094 \u1080 \u1076 \u1077 \u1085 \u1090 ':\
-            text = '\uc0\u1055 \u1077 \u1088 \u1077 \u1085 \u1072 \u1087 \u1088 \u1072 \u1074 \u1080 \u1090 \u1100  \u1085 \u1072  \u1080 \u1085 \u1078 \u1077 \u1085 \u1077 \u1088 \u1072  \u1087 \u1086 \u1076 \u1076 \u1077 \u1088 \u1078 \u1082 \u1080  (\u1057 \u1080 \u1076 \u1086 \u1088 \u1086 \u1074 ). \u1045 \u1089 \u1083 \u1080  \u1082 \u1088 \u1080 \u1090 \u1080 \u1095 \u1085 \u1086  \'97 \u1091 \u1074 \u1077 \u1076 \u1086 \u1084 \u1080 \u1090 \u1100  DevOps.';\
-            break;\
-        case '\uc0\u1041 \u1102 \u1076 \u1078 \u1077 \u1090 ':\
-            text = '\uc0\u1057 \u1086 \u1075 \u1083 \u1072 \u1089 \u1086 \u1074 \u1072 \u1090 \u1100  \u1089  \u1092 \u1080 \u1085 \u1072 \u1085 \u1089 \u1086 \u1074 \u1099 \u1084  \u1076 \u1080 \u1088 \u1077 \u1082 \u1090 \u1086 \u1088 \u1086 \u1084 . \u1055 \u1088 \u1086 \u1074 \u1077 \u1088 \u1080 \u1090 \u1100  \u1086 \u1089 \u1090 \u1072 \u1090 \u1086 \u1082  \u1089 \u1088 \u1077 \u1076 \u1089 \u1090 \u1074 .';\
-            break;\
-        case '\uc0\u1050 \u1072 \u1076 \u1088 \u1099 ':\
-            text = '\uc0\u1053 \u1072 \u1087 \u1088 \u1072 \u1074 \u1080 \u1090 \u1100  \u1085 \u1072 \u1095 \u1072 \u1083 \u1100 \u1085 \u1080 \u1082 \u1091  \u1086 \u1090 \u1076 \u1077 \u1083 \u1072  \u1087 \u1077 \u1088 \u1089 \u1086 \u1085 \u1072 \u1083 \u1072 . \u1055 \u1088 \u1080 \u1083 \u1086 \u1078 \u1080 \u1090 \u1100  \u1079 \u1072 \u1103 \u1074 \u1083 \u1077 \u1085 \u1080 \u1077  \u1080  \u1090 \u1072 \u1073 \u1077 \u1083 \u1100 .';\
-            break;\
-        case '\uc0\u1070 \u1088 \u1080 \u1089 \u1090 \u1099 ':\
-            text = '\uc0\u1055 \u1077 \u1088 \u1077 \u1076 \u1072 \u1090 \u1100  \u1102 \u1088 \u1080 \u1089 \u1090 \u1091  (\u1055 \u1077 \u1090 \u1088 \u1086 \u1074 \u1072 ). \u1055 \u1088 \u1086 \u1074 \u1077 \u1088 \u1080 \u1090 \u1100  \u1085 \u1072 \u1083 \u1080 \u1095 \u1080 \u1077  \u1074 \u1089 \u1077 \u1093  \u1087 \u1088 \u1080 \u1083 \u1086 \u1078 \u1077 \u1085 \u1080 \u1081 .';\
-            break;\
-        default:\
-            text = '\uc0\u1057 \u1090 \u1072 \u1085 \u1076 \u1072 \u1088 \u1090 \u1085 \u1099 \u1081  \u1087 \u1086 \u1088 \u1103 \u1076 \u1086 \u1082  \u1088 \u1072 \u1073 \u1086 \u1090 \u1099  \u1089  \u1079 \u1072 \u1103 \u1074 \u1082 \u1072 \u1084 \u1080 .';\
-    \}\
-\
-    if (days <= 1) \{\
-        text += ' \uc0\u1057 \u1056 \u1054 \u1050  \u1043 \u1054 \u1056 \u1048 \u1058 ! \u1053 \u1091 \u1078 \u1085 \u1086  \u1089 \u1088 \u1086 \u1095 \u1085 \u1086  \u1087 \u1088 \u1080 \u1085 \u1103 \u1090 \u1100  \u1084 \u1077 \u1088 \u1099 .';\
-    \} else if (days <= 5) \{\
-        text += ' \uc0\u1054 \u1089 \u1090 \u1072 \u1083 \u1086 \u1089 \u1100  5 \u1076 \u1085 \u1077 \u1081  \u1080 \u1083 \u1080  \u1084 \u1077 \u1085 \u1100 \u1096 \u1077 . \u1056 \u1077 \u1082 \u1086 \u1084 \u1077 \u1085 \u1076 \u1091 \u1077 \u1084  \u1091 \u1089 \u1082 \u1086 \u1088 \u1080 \u1090 \u1100 \u1089 \u1103 .';\
-    \}\
-\
-    return text;\
-\}\
-\
-// ============================================================\
-// 4. \uc0\u1054 \u1058 \u1056 \u1048 \u1057 \u1054 \u1042 \u1050 \u1040 \
-// ============================================================\
-function render() \{\
-    const listEl = document.getElementById('ticketList');\
-    const totalEl = document.getElementById('totalCount');\
-    const slaEl = document.getElementById('slaValue');\
-\
-    const sorted = [...tickets].sort((a, b) => daysLeft(a.deadline) - daysLeft(b.deadline));\
-\
-    totalEl.textContent = tickets.length;\
-\
-    const sla = calcSLA();\
-    slaEl.textContent = sla + '%';\
-    slaEl.className = 'value';\
-    if (sla >= 80) slaEl.classList.add('good');\
-    else if (sla >= 50) slaEl.classList.add('warning');\
-    else slaEl.classList.add('danger');\
-\
-    if (sorted.length === 0) \{\
-        listEl.innerHTML = '<div class="empty-state"><span>\uc0\u55357 \u56557 </span>\u1053 \u1077 \u1090  \u1079 \u1072 \u1103 \u1074 \u1086 \u1082 . \u1057 \u1086 \u1079 \u1076 \u1072 \u1081 \u1090 \u1077  \u1087 \u1077 \u1088 \u1074 \u1091 \u1102 !</div>';\
-        return;\
-    \}\
-\
-    let html = '';\
-    sorted.forEach(t => \{\
-        const days = daysLeft(t.deadline);\
-        const status = getStatus(days);\
-        let daysText = days < 0 ? '\uc0\u1055 \u1088 \u1086 \u1089 \u1088 \u1086 \u1095 \u1077 \u1085 \u1072 ' : (days === 0 ? '\u1057 \u1077 \u1075 \u1086 \u1076 \u1085 \u1103 ' : days + ' \u1076 \u1085 ');\
-\
-        html += `\
-            <div class="ticket-item $\{status\}" data-id="$\{t.id\}">\
-                <div class="ticket-info">\
-                    <div class="ticket-title">$\{t.title\}</div>\
-                    <div class="ticket-meta">\
-                        <span class="ticket-type">$\{t.type\}</span>\
-                        <span>$\{t.deadline\}</span>\
-                    </div>\
-                </div>\
-                <div class="ticket-deadline $\{status\}">$\{daysText\}</div>\
-            </div>\
-        `;\
-    \});\
-    listEl.innerHTML = html;\
-\
-    document.querySelectorAll('.ticket-item').forEach(el => \{\
-        el.addEventListener('click', function() \{\
-            const id = parseInt(this.dataset.id);\
-            const ticket = tickets.find(t => t.id === id);\
-            if (ticket) openModal(ticket);\
-        \});\
-    \});\
-\}\
-\
-// ============================================================\
-// 5. \uc0\u1052 \u1054 \u1044 \u1040 \u1051 \u1050 \u1040 \
-// ============================================================\
-function openModal(ticket) \{\
-    document.getElementById('modalTitle').textContent = ticket.title;\
-    document.getElementById('modalType').textContent = '\uc0\u1058 \u1080 \u1087 : ' + ticket.type;\
-    document.getElementById('modalDeadline').textContent = '\uc0\u1057 \u1088 \u1086 \u1082 : ' + ticket.deadline;\
-    document.getElementById('modalHintText').textContent = getHint(ticket);\
-    document.getElementById('modalOverlay').classList.add('active');\
-\}\
-\
-function closeModal() \{\
-    document.getElementById('modalOverlay').classList.remove('active');\
-\}\
-\
-// ============================================================\
-// 6. \uc0\u1060 \u1054 \u1056 \u1052 \u1040 \
-// ============================================================\
-function showForm() \{\
-    document.getElementById('formContainer').classList.add('open');\
-    document.getElementById('inputTitle').focus();\
-\}\
-\
-function hideForm() \{\
-    document.getElementById('formContainer').classList.remove('open');\
-\}\
-\
-function addTicket() \{\
-    const title = document.getElementById('inputTitle').value.trim();\
-    const type = document.getElementById('inputType').value;\
-    const date = document.getElementById('inputDate').value;\
-\
-    if (!title) \{ alert('\uc0\u1042 \u1074 \u1077 \u1076 \u1080 \u1090 \u1077  \u1085 \u1072 \u1079 \u1074 \u1072 \u1085 \u1080 \u1077  \u1079 \u1072 \u1103 \u1074 \u1082 \u1080 '); return; \}\
-    if (!date) \{ alert('\uc0\u1042 \u1099 \u1073 \u1077 \u1088 \u1080 \u1090 \u1077  \u1076 \u1072 \u1090 \u1091 '); return; \}\
-\
-    const maxId = tickets.reduce((max, t) => Math.max(max, t.id), 0);\
-    tickets.push(\{\
-        id: maxId + 1,\
-        title: title,\
-        type: type,\
-        deadline: date\
-    \});\
-    saveData();\
-    hideForm();\
-    render();\
-\}\
-\
-// ============================================================\
-// 7. \uc0\u1048 \u1053 \u1048 \u1062 \u1048 \u1040 \u1051 \u1048 \u1047 \u1040 \u1062 \u1048 \u1071 \
-// ============================================================\
-loadData();\
-render();\
-\
-// \uc0\u1059 \u1089 \u1090 \u1072 \u1085 \u1086 \u1074 \u1082 \u1072  \u1076 \u1072 \u1090 \u1099  \u1087 \u1086  \u1091 \u1084 \u1086 \u1083 \u1095 \u1072 \u1085 \u1080 \u1102  (\u1079 \u1072 \u1074 \u1090 \u1088 \u1072 )\
-const tomorrow = new Date();\
-tomorrow.setDate(tomorrow.getDate() + 1);\
-document.getElementById('inputDate').value = tomorrow.toISOString().split('T')[0];\
-\
-// \uc0\u1057 \u1054 \u1041 \u1067 \u1058 \u1048 \u1071 \
-document.getElementById('btnShowForm').addEventListener('click', showForm);\
-document.getElementById('btnCancel').addEventListener('click', hideForm);\
-document.getElementById('btnSave').addEventListener('click', addTicket);\
-document.getElementById('modalClose').addEventListener('click', closeModal);\
-document.getElementById('modalOverlay').addEventListener('click', function(e) \{\
-    if (e.target === this) closeModal();\
-\});\
-\
-document.getElementById('inputTitle').addEventListener('keydown', function(e) \{\
-    if (e.key === 'Enter') addTicket();\
-\});\
-\
-// ============================================================\
-// 8. PWA (\uc0\u1054 \u1092 \u1083 \u1072 \u1081 \u1085 -\u1088 \u1077 \u1078 \u1080 \u1084 )\
-// ============================================================\
-if ('serviceWorker' in navigator) \{\
-    const swCode = `\
-        self.addEventListener('install', e => \{\
-            e.waitUntil(\
-                caches.open('ticket-app-v1').then(cache => \{\
-                    return cache.addAll(['/']);\
-                \})\
-            );\
-        \});\
-        self.addEventListener('fetch', e => \{\
-            e.respondWith(\
-                caches.match(e.request).then(res => res || fetch(e.request))\
-            );\
-        \});\
-    `;\
-    try \{\
-        const blob = new Blob([swCode], \{ type: 'application/javascript' \});\
-        const swUrl = URL.createObjectURL(blob);\
-        navigator.serviceWorker.register(swUrl, \{ scope: '/' \})\
-            .then(() => console.log('Service Worker \uc0\u1079 \u1072 \u1088 \u1077 \u1075 \u1080 \u1089 \u1090 \u1088 \u1080 \u1088 \u1086 \u1074 \u1072 \u1085 '))\
-            .catch(() => console.log('SW \uc0\u1085 \u1077  \u1079 \u1072 \u1088 \u1077 \u1075 \u1080 \u1089 \u1090 \u1088 \u1080 \u1088 \u1086 \u1074 \u1072 \u1085 '));\
-    \} catch(e) \{\
-        console.log('Service Worker \uc0\u1085 \u1077  \u1087 \u1086 \u1076 \u1076 \u1077 \u1088 \u1078 \u1080 \u1074 \u1072 \u1077 \u1090 \u1089 \u1103 ');\
-    \}\
-\}\
-\
-// \uc0\u1059 \u1074 \u1077 \u1076 \u1086 \u1084 \u1083 \u1077 \u1085 \u1080 \u1103  \u1086  \u1087 \u1088 \u1086 \u1089 \u1088 \u1086 \u1095 \u1082 \u1077 \
-if ('Notification' in window && Notification.permission === 'default') \{\
-    Notification.requestPermission();\
-\}\
-\
-setTimeout(() => \{\
-    const overdue = tickets.filter(t => daysLeft(t.deadline) < 0);\
-    if (overdue.length > 0 && Notification.permission === 'granted') \{\
-        new Notification('\uc0\u1045 \u1089 \u1090 \u1100  \u1087 \u1088 \u1086 \u1089 \u1088 \u1086 \u1095 \u1077 \u1085 \u1085 \u1099 \u1077  \u1079 \u1072 \u1103 \u1074 \u1082 \u1080 !', \{\
-            body: '\uc0\u1059  \u1074 \u1072 \u1089  ' + overdue.length + ' \u1079 \u1072 \u1103 \u1074 \u1086 \u1082  \u1089  \u1080 \u1089 \u1090 \u1077 \u1082 \u1096 \u1080 \u1084  \u1089 \u1088 \u1086 \u1082 \u1086 \u1084 . \u1047 \u1072 \u1081 \u1076 \u1080 \u1090 \u1077  \u1074  \u1087 \u1088 \u1080 \u1083 \u1086 \u1078 \u1077 \u1085 \u1080 \u1077 .',\
-            icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%232b7be4"/%3E%3Ctext x="25" y="70" font-size="60" fill="white"%3E%F0%9F%93%8B%3C/text%3E%3C/svg%3E'\
-        \});\
-    \}\
-\}, 1000);\
-\
-console.log('\uc0\u1055 \u1088 \u1080 \u1083 \u1086 \u1078 \u1077 \u1085 \u1080 \u1077  \u1079 \u1072 \u1087 \u1091 \u1097 \u1077 \u1085 \u1086 ! \u1047 \u1072 \u1103 \u1074 \u1086 \u1082 :', tickets.length);\
-</script>\
-</body>\
-</html>}
+  <!-- ЭКРАН 1: ГЛАВНАЯ -->
+  <div id="screen-home" class="screen active">
+    <header>
+      <h1>Напоминания</h1>
+    </header>
+
+    <main>
+      <button class="big-btn blue" onclick="открытьФормуНапоминания()">
+        <span class="icon">🔔</span>
+        <span class="label">Создание напоминания</span>
+        <span class="arrow">›</span>
+      </button>
+
+      <button class="big-btn green" onclick="перейти('screen-tracker')">
+        <span class="icon">💊</span>
+        <span class="label">Создать трекер лекарств</span>
+        <span class="arrow">›</span>
+      </button>
+
+      <h2>Ближайшие</h2>
+      <div id="список-ближайших"></div>
+    </main>
+  </div>
+
+  <!-- ЭКРАН 2: ФОРМА НАПОМИНАНИЯ -->
+  <div id="screen-form" class="screen">
+    <header>
+      <button class="back" onclick="перейти('screen-home')">‹ Назад</button>
+      <h1>Новое напоминание</h1>
+      <button class="save" onclick="сохранитьНапоминание()">Готово</button>
+    </header>
+
+    <main>
+      <!-- Текстовое поле -->
+      <div class="field">
+        <textarea id="текст" placeholder="О чём напомнить?" rows="2"></textarea>
+      </div>
+
+      <!-- Интервалы -->
+      <label class="section-title">Быстрый интервал</label>
+      <div class="intervals">
+        <button class="interval" data-мин="30">30 мин</button>
+        <button class="interval" data-мин="80">80 мин</button>
+        <button class="interval" data-мин="60">1 час</button>
+        <button class="interval" data-мин="1440">1 день</button>
+      </div>
+
+      <!-- Часы -->
+      <button class="row-btn" onclick="показатьЧасы()">
+        <span>🕐</span>
+        <span>Часы — дата и время</span>
+        <span id="выбранное-время" class="muted"></span>
+      </button>
+      <div id="блок-часов" class="hidden">
+        <input type="date" id="дата">
+        <input type="time" id="время">
+      </div>
+
+      <!-- Вложения -->
+      <button class="row-btn" onclick="document.getElementById('фото').click()">
+        <span>📷</span>
+        <span>Прикрепить фото</span>
+        <span id="фото-метка" class="muted"></span>
+      </button>
+      <input type="file" id="фото" accept="image/*" hidden>
+
+      <button class="row-btn" onclick="document.getElementById('документ').click()">
+        <span>📄</span>
+        <span>Прикрепить документ</span>
+        <span id="док-метка" class="muted"></span>
+      </button>
+      <input type="file" id="документ" hidden>
+
+      <!-- Важное -->
+      <label class="row-btn">
+        <span>❗️</span>
+        <span>Очень важное</span>
+        <input type="checkbox" id="важное" class="toggle">
+      </label>
+
+      <!-- Удалить -->
+      <button class="row-btn red" onclick="удалитьНапоминание()">
+        <span>🗑</span>
+        <span>Удалить</span>
+      </button>
+    </main>
+  </div>
+
+  <!-- ЭКРАН 3: ТРЕКЕР ЛЕКАРСТВ -->
+  <div id="screen-tracker" class="screen">
+    <header>
+      <button class="back" onclick="перейти('screen-home')">‹ Назад</button>
+      <h1>Трекер лекарств</h1>
+      <button class="save" onclick="открытьФормуЛекарства()">+</button>
+    </header>
+
+    <main>
+      <div class="table-wrap">
+        <table id="таблица-лекарств">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Пн</th><th>Вт</th><th>Ср</th>
+              <th>Чт</th><th>Пт</th><th>Сб</th><th>Вс</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="row-label">Утро</td>  <td data-day="1" data-time="утро"></td><td data-day="2" data-time="утро"></td><td data-day="3" data-time="утро"></td><td data-day="4" data-time="утро"></td><td data-day="5" data-time="утро"></td><td data-day="6" data-time="утро"></td><td data-day="7" data-time="утро"></td></tr>
+            <tr><td class="row-label">День</td>  <td data-day="1" data-time="день"></td><td data-day="2" data-time="день"></td><td data-day="3" data-time="день"></td><td data-day="4" data-time="день"></td><td data-day="5" data-time="день"></td><td data-day="6" data-time="день"></td><td data-day="7" data-time="день"></td></tr>
+            <tr><td class="row-label">Вечер</td> <td data-day="1" data-time="вечер"></td><td data-day="2" data-time="вечер"></td><td data-day="3" data-time="вечер"></td><td data-day="4" data-time="вечер"></td><td data-day="5" data-time="вечер"></td><td data-day="6" data-time="вечер"></td><td data-day="7" data-time="вечер"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- ЭКРАН 4: ФОРМА ЛЕКАРСТВА -->
+  <div id="screen-med-form" class="screen">
+    <header>
+      <button class="back" onclick="перейти('screen-tracker')">‹ Назад</button>
+      <h1>Новое лекарство</h1>
+      <button class="save" onclick="сохранитьЛекарство()">Готово</button>
+    </header>
+
+    <main>
+      <input id="название-л" placeholder="Название лекарства">
+      <input id="дозировка-л" placeholder="Дозировка (например 100 мг)">
+
+      <label class="section-title">Когда принимать</label>
+      <div class="chips">
+        <label><input type="checkbox" value="утро" checked> Утро</label>
+        <label><input type="checkbox" value="день"> День</label>
+        <label><input type="checkbox" value="вечер"> Вечер</label>
+      </div>
+
+      <label class="section-title">Сколько раз в день</label>
+      <input type="number" id="раз-в-день" value="1" min="1" max="5">
+
+      <label class="section-title">Дни недели</label>
+      <div class="chips" id="дни-недели">
+        <label><input type="checkbox" value="1" checked> Пн</label>
+        <label><input type="checkbox" value="2" checked> Вт</label>
+        <label><input type="checkbox" value="3" checked> Ср</label>
+        <label><input type="checkbox" value="4" checked> Чт</label>
+        <label><input type="checkbox" value="5" checked> Пт</label>
+        <label><input type="checkbox" value="6" checked> Сб</label>
+        <label><input type="checkbox" value="7" checked> Вс</label>
+      </div>
+
+      <label class="section-title">Курс</label>
+      <input type="number" id="дней-курса" value="7" min="1" max="365">
+      <input type="date" id="дата-начала">
+      <p id="конец-курса" class="muted"></p>
+    </main>
+  </div>
+
+  <!-- ЭКРАН 5: СТАТИСТИКА -->
+  <div id="screen-stats" class="screen">
+    <header>
+      <h1>Статистика</h1>
+      <button onclick="экспортPDF()">📤 Экспорт</button>
+    </header>
+
+    <main>
+      <div class="circle-wrap">
+        <svg viewBox="0 0 200 200" class="circle">
+          <circle cx="100" cy="100" r="85" stroke="#e5e5ea" stroke-width="14" fill="none"/>
+          <circle id="прогресс" cx="100" cy="100" r="85" stroke="#34c759" stroke-width="14" fill="none"
+                  stroke-dasharray="534" stroke-dashoffset="534"
+                  stroke-linecap="round" transform="rotate(-90 100 100)"/>
+        </svg>
+        <div class="circle-text">
+          <strong id="процент">0%</strong>
+          <span>приверженность</span>
+        </div>
+      </div>
+
+      <div id="список-статистики"></div>
+    </main>
+  </div>
+
+  <!-- НИЖНЕЕ МЕНЮ -->
+  <nav class="tabbar">
+    <button class="tab active" data-screen="screen-home"><span>🏠</span>Главная</button>
+    <button class="tab" data-screen="screen-stats"><span>📊</span>Статистика</button>
+    <button class="tab" data-screen="screen-tracker"><span>💊</span>Трекер</button>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
