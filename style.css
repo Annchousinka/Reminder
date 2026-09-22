@@ -208,12 +208,141 @@ th { background: var(--border); font-weight: 600; font-size: 13px; }
 }
 td .pill {
   display: inline-block;
-  padding: 2px 6px;
+  padding: 3px 6px;
   background: var(--green); color: #fff;
   border-radius: 10px;
   font-size: 11px;
   font-weight: 600;
   margin: 1px 0;
+  line-height: 1.2;
+}
+
+/* ===== Точное время в форме лекарства ===== */
+.time-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+}
+.time-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex: 1;
+  user-select: none;
+  font-size: 16px;
+}
+.time-toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--blue);
+  margin: 0;
+}
+.time-row input[type="time"] {
+  width: 110px;
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 15px;
+  text-align: center;
+}
+
+/* ===== Кликабельные ячейки таблицы ===== */
+#таблица-лекарств td[data-day] {
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+  min-width: 55px;
+  vertical-align: middle;
+}
+#таблица-лекарств td[data-day]:active {
+  background: var(--border);
+}
+#таблица-лекарств td[data-day].done {
+  background: #e8f8e9;
+}
+@media (prefers-color-scheme: dark) {
+  #таблица-лекарств td[data-day].done {
+    background: #1c3a1e;
+  }
+}
+#таблица-лекарств td[data-day].done::after {
+  content: '✓';
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 11px;
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* ===== Карточки "сегодня" ===== */
+.сегодня-card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.сегодня-card .название {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+.сегодня-card .инфо {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.сегодня-card .кнопки {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.кнопка-приём {
+  flex: 1;
+  min-width: 90px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text);
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.кнопка-приём:active {
+  transform: scale(0.97);
+}
+.кнопка-приём.выпито {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+.кнопка-приём .время {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+.кнопка-приём.выпито .время {
+  opacity: 0.9;
+}
+
+/* ===== Время внутри пилюли таблицы ===== */
+.pill-time {
+  display: block;
+  font-size: 9px;
+  font-weight: 400;
+  opacity: 0.85;
+  margin-top: 1px;
 }
 
 /* ===== Круг статистики ===== */
