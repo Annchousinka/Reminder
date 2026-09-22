@@ -1,7 +1,12 @@
 /* ============================================================
    ПРИЛОЖЕНИЕ «НАПОМИНАНИЯ И ЛЕКАРСТВА»
-   С отметками по датам и навигацией по неделям
+   Версия с Telegram, навигацией по неделям, точным временем
    ============================================================ */
+
+// ============ НАСТРОЙКИ TELEGRAM ============
+// ⚠️ ВСТАВЬТЕ СВОИ ЗНАЧЕНИЯ ИЛИ ОСТАВЬТЕ ПУСТЫМИ, ЧТОБЫ ОТКЛЮЧИТЬ
+const TELEGRAM_ТОКЕН = '8809648802:AAFKyDzzKmbOO3g-4rDk0dQHiMOn0QtUkZg';        // например: '7123456789:AAEg...'
+const TELEGRAM_CHAT_ID = '891225443';      // например: '123456789'
 
 // ============ БАЗА ДАННЫХ (IndexedDB) ============
 let db;
@@ -11,7 +16,7 @@ function открытьБД() {
     const req = indexedDB.open('напоминания', 1);
     req.onupgradeneeded = e => {
       const d = e.target.result;
-      if (!d.objectStoreNames.contains('нпоминания'))
+      if (!d.objectStoreNames.contains('напоминания'))
         d.createObjectStore('напоминания', { keyPath: 'id' });
       if (!d.objectStoreNames.contains('лекарства'))
         d.createObjectStore('лекарства', { keyPath: 'id' });
@@ -45,22 +50,6 @@ function удалитьИз(store, id) {
   });
 }
 
-// ============ НАВИГАЦИЯ ============
-function перейти(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  window.scrollTo(0, 0);
-  обновитьВсё();
-}
-
-document.querySelectorAll('.tab').forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    перейти(btn.dataset.screen);
-  };
-});
-
 // ============ УТИЛИТЫ ============
 function экранировать(s) {
   return String(s || '').replace(/[&<>"']/g, c =>
@@ -68,7 +57,14 @@ function экранировать(s) {
 }
 
 function сегодняISO() {
-  return new Date().toISOString().slice(0, 10);
+  return датаISO(new Date());
+}
+
+function датаISO(дата) {
+  const г = дата.getFullYear();
+  const м = String(дата.getMonth() + 1).padStart(2, '0');
+  const д = String(дата.getDate()).padStart(2, '0');
+  return `${г}-${м}-${д}`;
 }
 
 function форматВремени(ts) {
@@ -79,15 +75,7 @@ function форматДаты(ts) {
   return new Date(ts).toLocaleDateString('ru', { day: 'numeric', month: 'short' });
 }
 
-// 🆕 Получить ISO-дату (YYYY-MM-DD) без сдвига часового пояса
-function датаISO(дата) {
-  const г = дата.getFullYear();
-  const м = String(дата.getMonth() + 1).padStart(2, '0');
-  const д = String(дата.getDate()).padStart(2, '0');
-  return `${г}-${м}-${д}`;
-}
-
-// 🆕 Получить даты недели (Пн–Вс) для указанной опорной даты
+// Даты недели (Пн–Вс) для указанной опорной даты
 function получитьДатыНедели(опорнаяДата) {
   const день = опорнаяДата.getDay() === 0 ? 7 : опорнаяДата.getDay();
   const пн = new Date(опорнаяДата);
@@ -104,8 +92,26 @@ function получитьДатыНедели(опорнаяДата) {
   return даты;
 }
 
+// ============ НАВИГАЦИЯ ПО ЭКРАНАМ ============
+function перейти(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const экран = document.getElementById(id);
+  if (экран) экран.classList.add('active');
+  window.scrollTo(0, 0);
+  обновитьВсё();
+}
+
+// Привязка нижнего меню
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    перейти(btn.dataset.screen);
+  });
+});
+
 // ============ НАВИГАЦИЯ ПО НЕДЕЛЯМ ============
-let смещениеНедели = 0; // 0 = текущая, -1 = прошлая, +1 = следующая
+let смещениеНедели = 0;
 
 function сменитьНеделю(дельта) {
   смещениеНедели += дельта;
@@ -117,14 +123,71 @@ function сброситьНеделю() {
   обновитьТаблицу();
 }
 
+// ============ TELEGRAM ============
+async function отправитьВTelegram(текст) {
+  if (!TELEGRAM_ТОКЕН || !TELEGRAM_CHAT_ID) return;
+  if (!textOK(текст)) return;
+
+  const url = `https://api.telegram.org/bot${TELEGRAM_ТОКЕН}/sendMessage`;
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: текст,
+        parse_mode: 'HTML',
+        disable_notification: false
+      })
+    });
+  } catch (e) {
+    console.warn('Telegram недоступен:', e);
+  }
+}
+
+function textOK(s) {
+  return typeof s === 'string' && s.trim().length > 0;
+}
+
+// ============ УВЕДОМЛЕНИЯ ============
+async function запроситьРазрешение() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  try {
+    const р = await Notification.requestPermission();
+    return р === 'granted';
+  } catch { return false; }
+}
+
+async function запланироватьУведомление(н) {
+  const разрешено = await запроситьРазрешение();
+  if (!разрешено) return;
+
+  const задержка = н.когда - Date.now();
+  if (задержка <= 0) return;
+
+  try {
+    const рег = await navigator.serviceWorker.ready;
+    рег.active.postMessage({
+      тип: 'ЗАПЛАНИРОВАТЬ',
+      напоминание: н,
+      задержка
+    });
+  } catch (e) {
+    console.warn('SW недоступен:', e);
+  }
+}
+
 // ============ НАПОМИНАНИЯ ============
 let текущийИнтервал = 60;
 let текущееФото = null;
 let текущийДокумент = null;
 let редактируемоеId = null;
 
+// Привязка кнопок интервалов
 document.querySelectorAll('.interval').forEach(btn => {
-  btn.onclick = () => {
+  btn.addEventListener('click', () => {
     document.querySelectorAll('.interval').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     текущийИнтервал = parseInt(btn.dataset.мин);
@@ -134,7 +197,7 @@ document.querySelectorAll('.interval').forEach(btn => {
       String(когда.getHours()).padStart(2, '0') + ':' +
       String(когда.getMinutes()).padStart(2, '0');
     показатьВремя();
-  };
+  });
 });
 
 function открытьФормуНапоминания() {
@@ -190,10 +253,10 @@ function показатьВремя() {
   document.getElementById('выбранное-время').textContent = д && в ? `${д} ${в}` : '';
 }
 
-document.getElementById('дата').onchange = показатьВремя;
-document.getElementById('время').onchange = показатьВремя;
+document.getElementById('дата').addEventListener('change', показатьВремя);
+document.getElementById('время').addEventListener('change', показатьВремя);
 
-document.getElementById('фото').onchange = e => {
+document.getElementById('фото').addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return;
   const reader = new FileReader();
@@ -202,9 +265,9 @@ document.getElementById('фото').onchange = e => {
     document.getElementById('фото-метка').textContent = '✓';
   };
   reader.readAsDataURL(f);
-};
+});
 
-document.getElementById('документ').onchange = e => {
+document.getElementById('документ').addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return;
   const reader = new FileReader();
@@ -213,7 +276,7 @@ document.getElementById('документ').onchange = e => {
     document.getElementById('док-метка').textContent = '✓';
   };
   reader.readAsDataURL(f);
-};
+});
 
 async function сохранитьНапоминание() {
   const текст = document.getElementById('текст').value.trim();
@@ -229,8 +292,10 @@ async function сохранитьНапоминание() {
   }
 
   if (редактируемоеId) {
-    const рег = await navigator.serviceWorker.ready;
-    рег.active.postMessage({ тип: 'ОТМЕНИТЬ', id: редактируемоеId });
+    try {
+      const рег = await navigator.serviceWorker.ready;
+      рег.active.postMessage({ тип: 'ОТМЕНИТЬ', id: редактируемоеId });
+    } catch {}
   }
 
   const н = {
@@ -246,11 +311,12 @@ async function сохранитьНапоминание() {
 
   await сохранить('напоминания', н);
   await запланироватьУведомление(н);
-   
-// 🆕 Дублируем в Telegram
-await отправитьВTelegram(`🔔 <b>${экранировать(текст)}</b>\n⏰ ${new Date(когда).toLocaleString('ru')}`);
 
-редактируемоеId = null;
+  // Дублируем в Telegram
+  await отправитьВTelegram(
+    `🔔 <b>${экранировать(текст)}</b>\n⏰ ${new Date(когда).toLocaleString('ru')}`
+  );
+
   редактируемоеId = null;
   перейти('screen-home');
 }
@@ -263,63 +329,15 @@ async function удалитьНапоминание() {
   if (!confirm('Удалить это напоминание?')) return;
 
   await удалитьИз('напоминания', редактируемоеId);
-  const рег = await navigator.serviceWorker.ready;
-  рег.active.postMessage({ тип: 'ОТМЕНИТЬ', id: редактируемоеId });
+  try {
+    const рег = await navigator.serviceWorker.ready;
+    рег.active.postMessage({ тип: 'ОТМЕНИТЬ', id: редактируемоеId });
+  } catch {}
 
   редактируемоеId = null;
   перейти('screen-home');
 }
 
-// ============ УВЕДОМЛЕНИЯ ============
-async function запроситьРазрешение() {
-  if (!('Notification' in window)) {
-    alert('Ваш браузер не поддерживает уведомления');
-    return false;
-  }
-  if (Notification.permission === 'granted') return true;
-  if (Notification.permission === 'denied') return false;
-  const р = await Notification.requestPermission();
-  return р === 'granted';
-}
-
-async function запланироватьУведомление(н) {
-  const разрешено = await запроситьРазрешение();
-  if (!разрешено) return;
-
-  const задержка = н.когда - Date.now();
-  if (задержка <= 0) return;
-
-  const рег = await navigator.serviceWorker.ready;
-  рег.active.postMessage({
-    тип: 'ЗАПЛАНИРОВАТЬ',
-    напоминание: н,
-    задержка
-  });
-}
-// ============ TELEGRAM ============
-// Вставьте сюда ваши данные из Шагов 1 и 2
-const TELEGRAM_ТОКЕН = '8809648802:AAFKyDzzKmbOO3g-4rDk0dQHiMOn0QtUkZg';
-const TELEGRAM_CHAT_ID = '891225443';
-
-async function отправитьВTelegram(текст) {
-  if (!TELEGRAM_ТОКЕН || !TELEGRAM_CHAT_ID) return;
-  
-  const url = `https://api.telegram.org/bot${TELEGRAM_ТОКЕН}/sendMessage`;
-  
-  try {
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: текст,
-        parse_mode: 'HTML'
-      })
-    });
-  } catch (e) {
-    console.warn('Не удалось отправить в Telegram:', e);
-  }
-}
 // ============ ЛЕКАРСТВА ============
 let редактируемоеЛекарствоId = null;
 
@@ -402,8 +420,6 @@ async function сохранитьЛекарство() {
   await запланироватьЛекарство(л);
 
   редактируемоеЛекарствоId = null;
-
-  // Возвращаемся к текущей неделе
   смещениеНедели = 0;
 
   document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
@@ -451,21 +467,29 @@ async function создатьНапоминаниеНаПриём(л) {
 
   await сохранить('напоминания', напоминание);
   await запланироватьУведомление(напоминание);
+
+  // Дублируем в Telegram
+  await отправитьВTelegram(
+    `💊 <b>${экранировать(л.название)}</b>\n` +
+    `Приём: ${ближайшее.вр} (${л.времяТочное[ближайшее.вр]})\n` +
+    `Дозировка: ${экранировать(л.дозировка)}\n` +
+    `Дата: ${датаISO(ближайшее.когда)}`
+  );
 }
-// 🆕 Дублируем в Telegram
-await отправитьВTelegram(
-  `💊 <b>${экранировать(л.название)}</b>\n` +
-  `Время: ${ближайшее.вр} (${л.времяТочное[ближайшее.вр]})\n` +
-  `Дозировка: ${экранировать(л.дозировка)}`
-);
+
 async function отменитьУведомленияЛекарства(лId) {
   const все = await получитьВсе('напоминания');
   const связанные = все.filter(н => н.лекарствоId === лId);
-  const рег = await navigator.serviceWorker.ready;
-
-  for (const н of связанные) {
-    await удалитьИз('напоминания', н.id);
-    рег.active.postMessage({ тип: 'ОТМЕНИТЬ', id: н.id });
+  try {
+    const рег = await navigator.serviceWorker.ready;
+    for (const н of связанные) {
+      await удалитьИз('напоминания', н.id);
+      рег.active.postMessage({ тип: 'ОТМЕНИТЬ', id: н.id });
+    }
+  } catch {
+    for (const н of связанные) {
+      await удалитьИз('напоминания', н.id);
+    }
   }
 }
 
@@ -473,54 +497,58 @@ async function запланироватьЛекарство(л) {
   const разрешено = await запроситьРазрешение();
   if (!разрешено) return;
 
-  const рег = await navigator.serviceWorker.ready;
-  const старт = new Date(л.датаНачала);
+  try {
+    const рег = await navigator.serviceWorker.ready;
+    const старт = new Date(л.датаНачала);
 
-  for (let д = 0; д < л.днейКурса; д++) {
-    const дата = new Date(старт);
-    дата.setDate(дата.getDate() + д);
-    const нашДень = дата.getDay() === 0 ? 7 : дата.getDay();
-    if (!л.дни.includes(нашДень)) continue;
+    for (let д = 0; д < л.днейКурса; д++) {
+      const дата = new Date(старт);
+      дата.setDate(дата.getDate() + д);
+      const нашДень = дата.getDay() === 0 ? 7 : дата.getDay();
+      if (!л.дни.includes(нашДень)) continue;
 
-    for (const вр of л.времена) {
-      const [ч, м] = (л.времяТочное[вр] || '08:00').split(':').map(Number);
-      const когда = new Date(дата);
-      когда.setHours(ч, м, 0, 0);
-      const задержка = когда.getTime() - Date.now();
-      if (задержка <= 0) continue;
+      for (const вр of л.времена) {
+        const [ч, м] = (л.времяТочное[вр] || '08:00').split(':').map(Number);
+        const когда = new Date(дата);
+        когда.setHours(ч, м, 0, 0);
+        const задержка = когда.getTime() - Date.now();
+        if (задержка <= 0) continue;
 
+        рег.active.postMessage({
+          тип: 'ЗАПЛАНИРОВАТЬ',
+          напоминание: {
+            id: `${л.id}-${датаISO(дата)}-${вр}`,
+            текст: `💊 ${л.название}`,
+            подтекст: `${вр} · ${л.дозировка}`,
+            когда: когда.getTime(),
+            лекарствоId: л.id,
+            приём: вр,
+            метка: `${датаISO(дата)}-${вр}`
+          },
+          задержка
+        });
+      }
+    }
+
+    // Напоминание о повторе курса
+    const конец = new Date(старт);
+    конец.setDate(конец.getDate() + л.днейКурса - 1);
+    конец.setHours(10, 0, 0, 0);
+    const задержка = конец.getTime() - Date.now();
+    if (задержка > 0) {
       рег.active.postMessage({
         тип: 'ЗАПЛАНИРОВАТЬ',
         напоминание: {
-          id: `${л.id}-${датаISO(дата)}-${вр}`,
-          текст: `💊 ${л.название}`,
-          подтекст: `${вр} · ${л.дозировка}`,
-          когда: когда.getTime(),
-          лекарствоId: л.id,
-          приём: вр,
-          метка: `${датаISO(дата)}-${вр}`
+          id: `${л.id}-повтор`,
+          текст: `🔄 Пора повторить курс`,
+          подтекст: `«${л.название}» заканчивается`,
+          когда: конец.getTime()
         },
         задержка
       });
     }
-  }
-
-  // Повтор курса
-  const конец = new Date(старт);
-  конец.setDate(конец.getDate() + л.днейКурса - 1);
-  конец.setHours(10, 0, 0, 0);
-  const задержка = конец.getTime() - Date.now();
-  if (задержка > 0) {
-    рег.active.postMessage({
-      тип: 'ЗАПЛАНИРОВАТЬ',
-      напоминание: {
-        id: `${л.id}-повтор`,
-        текст: `🔄 Пора повторить курс`,
-        подтекст: `«${л.название}» заканчивается`,
-        когда: конец.getTime()
-      },
-      задержка
-    });
+  } catch (e) {
+    console.warn('SW недоступен при планировании лекарства:', e);
   }
 }
 
@@ -542,7 +570,6 @@ async function удалитьЛекарство(id) {
 }
 
 // ============ ОТМЕТКИ ПРИЁМА ============
-// Ключ теперь всегда: "YYYY-MM-DD-приём" — привязан к конкретной дате
 async function отметитьПриёмДля(лId, время, датаСтрока) {
   const все = await получитьВсе('лекарства');
   const л = все.find(x => x.id === лId);
@@ -552,13 +579,14 @@ async function отметитьПриёмДля(лId, время, датаСтр
   л.принято[ключ] = !л.принято[ключ];
   await сохранить('лекарства', л);
 
-  // Отменяем уведомление, если отмечено как выпитое
   if (л.принято[ключ]) {
-    const рег = await navigator.serviceWorker.ready;
-    рег.active.postMessage({
-      тип: 'ОТМЕНИТЬ',
-      id: `${л.id}-${датаСтрока}-${время}`
-    });
+    try {
+      const рег = await navigator.serviceWorker.ready;
+      рег.active.postMessage({
+        тип: 'ОТМЕНИТЬ',
+        id: `${л.id}-${датаСтрока}-${время}`
+      });
+    } catch {}
   }
 
   await обновитьТаблицу();
@@ -607,6 +635,7 @@ async function обновитьБлижайшие() {
     .sort((a, b) => a.когда - b.когда);
 
   const контейнер = document.getElementById('список-ближайших');
+  if (!контейнер) return;
 
   if (все.length === 0) {
     контейнер.innerHTML = '<h2>Ближайшие</h2><p class="muted">Пока нет напоминаний</p>';
@@ -664,15 +693,14 @@ async function обновитьТаблицу() {
   const все = await получитьВсе('лекарства');
   const сегодня = сегодняISO();
 
-  // Определяем опорную дату с учётом смещения недели
   const опорная = new Date();
   опорная.setDate(опорная.getDate() + смещениеНедели * 7);
-
   const датыНедели = получитьДатыНедели(опорная);
+
   const датаСегодня = new Date();
   const деньСегодня = датаСегодня.getDay() === 0 ? 7 : датаСегодня.getDay();
 
-  // === Навигация по неделям ===
+  // Навигация по неделям
   const navEl = document.querySelector('.week-nav');
   const названиеEl = document.getElementById('название-недели');
   const диапазонEl = document.getElementById('диапазон-недели');
@@ -689,9 +717,9 @@ async function обновитьТаблицу() {
     const ф = (д) => `${String(д.getDate()).padStart(2,'0')}.${String(д.getMonth()+1).padStart(2,'0')}`;
     диапазонEl.textContent = `${ф(пн)} — ${ф(вс)}`;
   }
-  navEl?.classList.toggle('текущая', смещениеНедели === 0);
+  if (navEl) navEl.classList.toggle('текущая', смещениеНедели === 0);
 
-  // === Шапка таблицы с датами ===
+  // Шапка таблицы
   const шапка = document.getElementById('шапка-таблицы');
   if (шапка) {
     шапка.querySelectorAll('th[data-day]').forEach(th => {
@@ -705,19 +733,17 @@ async function обновитьТаблицу() {
     });
   }
 
-  // === Заполняем ячейки ===
+  // Ячейки
   document.querySelectorAll('#таблица-лекарств td[data-day]').forEach(td => {
     const день = parseInt(td.dataset.day);
     const время = td.dataset.time;
     const дата = датыНедели[день];
     const датаСтр = датаISO(дата);
 
-    // Лекарства, которые надо принимать в этот день недели и время
     const подходящие = все.filter(л =>
       л.дни.includes(день) && л.времена.includes(время)
     );
 
-    // Отбираем активные в эту конкретную дату (курс ещё идёт)
     const активные = подходящие.filter(л => {
       const старт = new Date(л.датаНачала);
       старт.setHours(0, 0, 0, 0);
@@ -729,7 +755,6 @@ async function обновитьТаблицу() {
       return д >= старт && д <= конец;
     });
 
-    // Пилюли с названием и временем приёма
     td.innerHTML = активные.map(л => {
       const [ч, м] = (л.времяТочное?.[время] || '').split(':');
       const выпито = л.принято[`${датаСтр}-${время}`];
@@ -738,7 +763,6 @@ async function обновитьТаблицу() {
       </span>`;
     }).join('<br>');
 
-    // Все ли активные отмечены именно на ЭТУ дату
     const всеОтмечены = активные.length > 0 && активные.every(л =>
       л.принято[`${датаСтр}-${время}`]
     );
@@ -746,7 +770,6 @@ async function обновитьТаблицу() {
     td.classList.toggle('done', всеОтмечены);
     td.classList.toggle('неактивна', активные.length === 0);
 
-    // Клик — отмечаем на конкретную дату
     td.onclick = () => {
       if (активные.length === 0) return;
 
@@ -765,11 +788,12 @@ async function обновитьТаблицу() {
     };
   });
 
-  // === Сегодня ===
   await обновитьСегодня(все, сегодня, деньСегодня);
 
-  // === Список лекарств ===
+  // Список лекарств
   const список = document.getElementById('список-лекарств');
+  if (!список) return;
+
   if (все.length === 0) {
     список.innerHTML = '<p class="muted">Пока нет лекарств. Нажмите «+» сверху.</p>';
     return;
@@ -856,13 +880,18 @@ async function обновитьСтатистику() {
   });
 
   const процент = всего === 0 ? 0 : Math.round((принято / всего) * 100);
-  document.getElementById('процент').textContent = процент + '%';
+  const элПроцент = document.getElementById('процент');
+  if (элПроцент) элПроцент.textContent = процент + '%';
 
   const круг = document.getElementById('прогресс');
-  const длина = 534;
-  круг.setAttribute('stroke-dashoffset', длина - (длина * процент / 100));
+  if (круг) {
+    const длина = 534;
+    круг.setAttribute('stroke-dashoffset', длина - (длина * процент / 100));
+  }
 
   const контейнер = document.getElementById('список-статистики');
+  if (!контейнер) return;
+
   if (все.length === 0) {
     контейнер.innerHTML = '<p class="muted" style="text-align:center">Нет данных для статистики</p>';
     return;
@@ -946,7 +975,13 @@ async function экспортPDF() {
 
 // ============ СТАРТ ============
 (async () => {
-  await открытьБД();
+  try {
+    await открытьБД();
+  } catch (e) {
+    console.error('Ошибка БД:', e);
+    alert('Не удалось открыть базу данных. Возможно, приватный режим браузера.');
+    return;
+  }
 
   if ('serviceWorker' in navigator) {
     try {
