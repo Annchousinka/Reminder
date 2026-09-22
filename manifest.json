@@ -1,6 +1,6 @@
 {
   "name": "Напоминания и Лекарства",
-  "short_name": "Напомин.",
+  "short_name": "Напомни",
   "description": "Напоминания, трекер лекарств, статистика",
   "start_url": "/Reminder/",
    "scope": "/Reminder/",
