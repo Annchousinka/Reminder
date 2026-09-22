@@ -1,5 +1,10 @@
+/* ============================================================
+   ПРИЛОЖЕНИЕ «НАПОМИНАНИЯ И ЛЕКАРСТВА»
+   ============================================================ */
+
 // ============ БАЗА ДАННЫХ (IndexedDB) ============
 let db;
+
 function открытьБД() {
   return new Promise((res, rej) => {
     const req = indexedDB.open('напоминания', 1);
@@ -55,7 +60,25 @@ document.querySelectorAll('.tab').forEach(btn => {
   };
 });
 
-// ============ ФОРМА НАПОМИНАНИЯ ============
+// ============ УТИЛИТЫ ============
+function экранировать(s) {
+  return String(s || '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function сегодняISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function форматВремени(ts) {
+  return new Date(ts).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+}
+
+function форматДаты(ts) {
+  return new Date(ts).toLocaleDateString('ru', { day: 'numeric', month: 'short' });
+}
+
+// ============ НАПОМИНАНИЯ: СОЗДАНИЕ / РЕДАКТИРОВАНИЕ ============
 let текущийИнтервал = 60;
 let текущееФото = null;
 let текущийДокумент = null;
@@ -66,7 +89,6 @@ document.querySelectorAll('.interval').forEach(btn => {
     document.querySelectorAll('.interval').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     текущийИнтервал = parseInt(btn.dataset.мин);
-    // Автоматически ставим дату = сейчас + интервал
     const когда = new Date(Date.now() + текущийИнтервал * 60000);
     document.getElementById('дата').value = когда.toISOString().slice(0, 10);
     document.getElementById('время').value =
@@ -85,9 +107,37 @@ function открытьФормуНапоминания() {
   document.getElementById('фото-метка').textContent = '';
   document.getElementById('док-метка').textContent = '';
   document.getElementById('блок-часов').classList.add('hidden');
+  document.getElementById('дата').value = '';
+  document.getElementById('время').value = '';
+  document.getElementById('выбранное-время').textContent = '';
   document.querySelector('#screen-form h1').textContent = 'Новое напоминание';
-  // скрываем "Удалить" при создании
   document.querySelector('#screen-form .row-btn.red').style.display = 'none';
+  перейти('screen-form');
+}
+
+async function открытьНапоминание(id) {
+  const все = await получитьВсе('напоминания');
+  const н = все.find(x => x.id === id);
+  if (!н) return;
+
+  редактируемоеId = id;
+  document.getElementById('текст').value = н.текст;
+  document.getElementById('важное').checked = н.важное;
+  текущееФото = н.фото;
+  текущийДокумент = н.документ;
+  document.getElementById('фото-метка').textContent = н.фото ? '✓' : '';
+  document.getElementById('док-метка').textContent = н.документ ? '✓' : '';
+
+  const д = new Date(н.когда);
+  document.getElementById('дата').value = д.toISOString().slice(0, 10);
+  document.getElementById('время').value =
+    String(д.getHours()).padStart(2, '0') + ':' +
+    String(д.getMinutes()).padStart(2, '0');
+  показатьВремя();
+
+  document.querySelector('#screen-form h1').textContent = 'Редактировать';
+  document.querySelector('#screen-form .row-btn.red').style.display = 'flex';
+
   перейти('screen-form');
 }
 
@@ -139,7 +189,6 @@ async function сохранитьНапоминание() {
     когда = Date.now() + текущийИнтервал * 60000;
   }
 
-  // 🆕 Если редактируем — отменяем старое уведомление
   if (редактируемоеId) {
     const рег = await navigator.serviceWorker.ready;
     рег.active.postMessage({ тип: 'ОТМЕНИТЬ', id: редактируемоеId });
@@ -158,16 +207,23 @@ async function сохранитьНапоминание() {
 
   await сохранить('напоминания', н);
   await запланироватьУведомление(н);
+
   редактируемоеId = null;
   перейти('screen-home');
 }
+
 async function удалитьНапоминание() {
-  if (редактируемоеId) {
-    await удалитьИз('напоминания', редактируемоеId);
-    // Отменяем уведомление
-    const рег = await navigator.serviceWorker.ready;
-    рег.getNotifications({ tag: редактируемоеId }).then(ns => ns.forEach(n => n.close()));
+  if (!редактируемоеId) {
+    перейти('screen-home');
+    return;
   }
+  if (!confirm('Удалить это напоминание?')) return;
+
+  await удалитьИз('напоминания', редактируемоеId);
+  const рег = await navigator.serviceWorker.ready;
+  рег.active.postMessage({ тип: 'ОТМЕНИТЬ', id: редактируемоеId });
+
+  редактируемоеId = null;
   перейти('screen-home');
 }
 
@@ -178,6 +234,7 @@ async function запроситьРазрешение() {
     return false;
   }
   if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
   const р = await Notification.requestPermission();
   return р === 'granted';
 }
@@ -189,7 +246,6 @@ async function запланироватьУведомление(н) {
   const задержка = н.когда - Date.now();
   if (задержка <= 0) return;
 
-  // Через Service Worker — работает, даже если вкладка закрыта (на Android)
   const рег = await navigator.serviceWorker.ready;
   рег.active.postMessage({
     тип: 'ЗАПЛАНИРОВАТЬ',
@@ -198,122 +254,7 @@ async function запланироватьУведомление(н) {
   });
 }
 
-// ============ ГЛАВНЫЙ ЭКРАН ============
-async function обновитьВсё() {
-  await обновитьБлижайшие();
-  await обновитьТаблицу();
-  await обновитьСтатистику();
-}
-
-async function обновитьБлижайшие() {
-  const напоминания = await получитьВсе('напоминания');
-  const сейчас = Date.now();
-
-  // Обычные напоминания + напоминания-лекарства (они уже в 'напоминания')
-  const все = напоминания
-    .filter(н => !н.выполнено)
-    .sort((a, b) => a.когда - b.когда);
-
-  const контейнер = document.getElementById('список-ближайших');
-
-  if (все.length === 0) {
-    контейнер.innerHTML = '<p class="muted">Пока нет напоминаний</p>';
-    return;
-  }
-
-  // 🆕 Группируем: "сегодня", "завтра", "позже"
-  const сегодняКонец = new Date();
-  сегодняКонец.setHours(23, 59, 59, 999);
-
-  const завтраКонец = new Date(сегодняКонец);
-  завтраКонец.setDate(завтраКонец.getDate() + 1);
-
-  const группы = { 'Сегодня': [], 'Завтра': [], 'Позже': [] };
-
-  все.forEach(н => {
-    if (н.когда <= сегодняКонец.getTime()) группы['Сегодня'].push(н);
-    else if (н.когда <= завтраКонец.getTime()) группы['Завтра'].push(н);
-    else группы['Позже'].push(н);
-  });
-
-  let html = '';
-  for (const [название, список] of Object.entries(группы)) {
-    if (список.length === 0) continue;
-    html += `<h2>${название}</h2>`;
-    html += список.slice(0, 8).map(н => карточкаНапоминания(н, сейчас)).join('');
-  }
-
-  контейнер.innerHTML = html;
-}
-
-// 🆕 Отдельная функция — рендер карточки
-function карточкаНапоминания(н, сейчас) {
-  const д = new Date(н.когда);
-  const время = д.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
-  const дата = д.toLocaleDateString('ru', { day: 'numeric', month: 'short' });
-  const просрочено = н.когда < сейчас;
-  const этоЛекарство = !!н.лекарствоId;
-
-  return `
-    <div class="card ${н.важное ? 'important' : ''} ${этоЛекарство ? 'med-card' : ''}"
-         onclick="открытьНапоминание('${н.id}')">
-      <div class="time">${время}</div>
-      <div class="body">
-        <div class="title">
-          ${этоЛекарство ? '💊 ' : ''}${экранировать(н.текст)}
-        </div>
-        <div class="sub">
-          ${дата}${просрочено ? ' · просрочено' : ''}
-          ${этоЛекарство ? ' · нажмите, чтобы отметить' : ''}
-        </div>
-      </div>
-      <button class="icon-btn" onclick="event.stopPropagation(); открытьНапоминание('${н.id}')">✏️</button>
-    </div>
-  `;
-}
-
-async function открытьНапоминание(id) {
-  const все = await получитьВсе('напоминания');
-  const н = все.find(x => x.id === id);
-  if (!н) return;
-
-  редактируемоеId = id;
-  document.getElementById('текст').value = н.текст;
-  document.getElementById('важное').checked = н.важное;
-  текущееФото = н.фото;
-  текущийДокумент = н.документ;
-
-  const д = new Date(н.когда);
-  document.getElementById('дата').value = д.toISOString().slice(0, 10);
-  document.getElementById('время').value =
-    String(д.getHours()).padStart(2, '0') + ':' +
-    String(д.getMinutes()).padStart(2, '0');
-  показатьВремя();
-
-  document.querySelector('#screen-form h1').textContent = 'Редактировать';
-  // показываем "Удалить" только для существующих
-  document.querySelector('#screen-form .row-btn.red').style.display = 'flex';
-
-  перейти('screen-form');
-}
-
-function экранировать(s) {
-  return String(s).replace(/[&<>"']/g, c =>
-    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// ============ ТРЕКЕР ЛЕКАРСТВ ============
-function открытьФормуЛекарства() {
-  document.getElementById('название-л').value = '';
-  document.getElementById('дозировка-л').value = '';
-  document.getElementById('раз-в-день').value = 1;
-  document.getElementById('дней-курса').value = 7;
-  document.getElementById('дата-начала').value =
-    new Date().toISOString().slice(0, 10);
-  перейти('screen-med-form');
-}
-
-// ============ ЛЕКАРСТВА: создание + редактирование ============
+// ============ ЛЕКАРСТВА ============
 let редактируемоеЛекарствоId = null;
 
 function открытьФормуЛекарства(лекарство = null) {
@@ -324,22 +265,22 @@ function открытьФормуЛекарства(лекарство = null) {
   document.getElementById('раз-в-день').value = лекарство?.разВДень || 1;
   document.getElementById('дней-курса').value = лекарство?.днейКурса || 7;
   document.getElementById('дата-начала').value =
-    лекарство?.датаНачала || new Date().toISOString().slice(0, 10);
+    лекарство?.датаНачала || сегодняISO();
 
-  // Галочки времени
-  document.querySelectorAll('.chips input[value="утро"],.chips input[value="день"],.chips input[value="вечер"]')
-    .forEach(cb => cb.checked = лекарство ? лекарство.времена.includes(cb.value) : cb.value === 'утро');
+  document.querySelectorAll('#chips-времени input').forEach(cb => {
+    cb.checked = лекарство
+      ? лекарство.времена.includes(cb.value)
+      : cb.value === 'утро';
+  });
 
-  // Галочки дней недели
   document.querySelectorAll('#дни-недели input').forEach(cb => {
     cb.checked = лекарство
       ? лекарство.дни.includes(parseInt(cb.value))
       : true;
   });
 
-  // Заголовок
   document.querySelector('#screen-med-form h1').textContent =
-    лекарство ? 'Редактировать лекарство' : 'Новое лекарство';
+    лекарство ? 'Редактировать' : 'Новое лекарство';
 
   перейти('screen-med-form');
 }
@@ -348,9 +289,8 @@ async function сохранитьЛекарство() {
   const название = document.getElementById('название-л').value.trim();
   if (!название) return alert('Введите название');
 
-  const времена = [...document.querySelectorAll(
-    '.chips input[value="утро"]:checked, .chips input[value="день"]:checked, .chips input[value="вечер"]:checked'
-  )].map(i => i.value);
+  const времена = [...document.querySelectorAll('#chips-времени input:checked')]
+    .map(i => i.value);
   if (времена.length === 0) return alert('Выберите время приёма');
 
   const дни = [...document.querySelectorAll('#дни-недели input:checked')]
@@ -360,271 +300,6 @@ async function сохранитьЛекарство() {
   const л = {
     id: редактируемоеЛекарствоId || crypto.randomUUID(),
     название,
-    дозировка: document.getElementById('дозировка-л').value,
+    дозировка: document.getElementById('дозировка-л').value || '1 таблетка',
     времена,
-    разВДень: parseInt(document.getElementById('раз-в-день').value),
-    дни,
-    днейКурса: parseInt(document.getElementById('дней-курса').value),
-    датаНачала: document.getElementById('дата-начала').value,
-    принято: {}
-  };
-
-  // Если редактируем — сохраняем старые отметки "принято"
-  if (редактируемоеЛекарствоId) {
-    const старые = (await получитьВсе('лекарства'))
-      .find(x => x.id === редактируемоеЛекарствоId);
-    if (старые?.принято) л.принято = старые.принято;
-    await отменитьУведомленияЛекарства(редактируемоеЛекарствоId);
-  }
-
-  await сохранить('лекарства', л);
-
-  // 🆕 1. Сразу создаём напоминание на БЛИЖАЙШИЙ приём
-  await создатьНапоминаниеНаПриём(л);
-
-  // Планируем все приёмы на весь курс
-  await запланироватьЛекарство(л);
-
-  редактируемоеЛекарствоId = null;
-
-  // 🆕 2. Переходим на трекер — там сразу видно лекарство
-  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-  document.querySelector('.tab[data-screen="screen-tracker"]')?.classList.add('active');
-  перейти('screen-tracker');
-}
-
-// 🆕 Создать обычное напоминание на ближайший приём лекарства
-async function создатьНапоминаниеНаПриём(л) {
-  const часы = { утро: 8, день: 14, вечер: 20 };
-  const старт = new Date(л.датаНачала);
-  let ближайшее = null;
-
-  for (let д = 0; д < л.днейКурса; д++) {
-    const дата = new Date(старт);
-    дата.setDate(дата.getDate() + д);
-    const нашДень = дата.getDay() === 0 ? 7 : дата.getDay();
-    if (!л.дни.includes(нашДень)) continue;
-
-    for (const вр of л.времена) {
-      const когда = new Date(дата);
-      когда.setHours(часы[вр], 0, 0, 0);
-      if (когда.getTime() > Date.now()) {
-        if (!ближайшее || когда < ближайшее) {
-          ближайшее = { когда, вр };
-        }
-      }
-    }
-    if (ближайшее) break; // первый подходящий день — достаточно
-  }
-
-  if (!ближайшее) return;
-
-  const напоминание = {
-    id: `мед-${л.id}-${ближайшее.когда.getTime()}`,
-    текст: `💊 Принять: ${л.название}`,
-    когда: ближайшее.когда.getTime(),
-    интервал: 60,
-    важное: true,
-    фото: null,
-    документ: null,
-    выполнено: false,
-    лекарствоId: л.id
-  };
-
-  await сохранить('напоминания', напоминание);
-  await запланироватьУведомление(напоминание);
-}
-
-// 🆕 Отмена уведомлений старого лекарства при редактировании
-async function отменитьУведомленияЛекарства(лId) {
-  const все = await получитьВсе('напоминания');
-  const связанные = все.filter(н => н.лекарствоId === лId);
-  const рег = await navigator.serviceWorker.ready;
-
-  for (const н of связанные) {
-    await удалитьИз('напоминания', н.id);
-    рег.active.postMessage({ тип: 'ОТМЕНИТЬ', id: н.id });
-  }
-}
-  // Напоминание о повторе курса
-  const конец = new Date(старт);
-  конец.setDate(конец.getDate() + л.днейКурса - 1);
-  конец.setHours(10, 0, 0, 0);
-  const задержка = конец.getTime() - Date.now();
-  if (задержка > 0) {
-    рег.active.postMessage({
-      тип: 'ЗАПЛАНИРОВАТЬ',
-      напоминание: {
-        id: `${л.id}-повтор`,
-        текст: `🔄 Пора повторить курс`,
-        подтекст: `«${л.название}» заканчивается`,
-        когда: конец.getTime()
-      },
-      задержка
-    });
-  }
-}
-
-async function обновитьТаблицу() {
-  const все = await получитьВсе('лекарства');
-
-  // ---- Таблица Пн-Вс × Утро-День-Вечер ----
-  document.querySelectorAll('#таблица-лекарств td[data-day]').forEach(td => {
-    const день = parseInt(td.dataset.day);
-    const время = td.dataset.time;
-    const подходящие = все.filter(л =>
-      л.дни.includes(день) && л.времена.includes(время)
-    );
-    td.innerHTML = подходящие
-      .map(л => `<span class="pill">${экранировать(л.название.slice(0, 3))}</span>`)
-      .join('<br>');
-  });
-
-  // ---- 🆕 Список карточек лекарств ----
-  const список = document.getElementById('список-лекарств');
-  if (все.length === 0) {
-    список.innerHTML = '<p class="muted">Пока нет лекарств</p>';
-    return;
-  }
-
-  список.innerHTML = все.map(л => {
-    const принято = Object.values(л.принято).filter(Boolean).length;
-    const нужно = л.днейКурса * л.разВДень;
-    const прогресс = нужно ? Math.round((принято / нужно) * 100) : 0;
-
-    return `
-      <div class="card med-info" onclick="отметитьПриём('${л.id}')">
-        <div class="body">
-          <div class="title">💊 ${экранировать(л.название)}</div>
-          <div class="sub">${л.дозировка} · ${л.времена.join(', ')} · ${л.днейКурса} дн.</div>
-          <div class="sub">Принято: ${принято} из ${нужно} (${прогресс}%)</div>
-        </div>
-        <div class="actions">
-          <button class="icon-btn" onclick="event.stopPropagation(); редактироватьЛекарство('${л.id}')">✏️</button>
-          <button class="icon-btn red" onclick="event.stopPropagation(); удалитьЛекарство('${л.id}')">🗑</button>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-// 🆕 Редактировать лекарство
-async function редактироватьЛекарство(id) {
-  const все = await получитьВсе('лекарства');
-  const л = все.find(x => x.id === id);
-  if (л) открытьФормуЛекарства(л);
-}
-
-// 🆕 Удалить лекарство (+ все его напоминания)
-async function удалитьЛекарство(id) {
-  if (!confirm('Удалить это лекарство и все его напоминания?')) return;
-
-  await удалитьИз('лекарства', id);
-  await отменитьУведомленияЛекарства(id);
-
-  // Обновляем UI
-  await обновитьТаблицу();
-  await обновитьБлижайшие();
-  await обновитьСтатистику();
-}
-
-// 🆕 Отметить приём прямо из карточки
-async function отметитьПриём(лId) {
-  const все = await получитьВсе('лекарства');
-  const л = все.find(x => x.id === лId);
-  if (!л) return;
-
-  const сегодня = new Date().toISOString().slice(0, 10);
-  const время = prompt('Какое время приёма отметить? (утро / день / вечер)');
-  if (!время || !л.времена.includes(время)) return;
-
-  const ключ = `${сегодня}-${время}`;
-  л.принято[ключ] = !л.принято[ключ];
-  await сохранить('лекарства', л);
-
-  await обновитьТаблицу();
-  await обновитьСтатистику();
-}
-
-// ============ СТАТИСТИКА ============
-async function обновитьСтатистику() {
-  const все = await получитьВсе('лекарства');
-  let всего = 0, принято = 0;
-
-  все.forEach(л => {
-    всего += л.днейКурса * л.разВДень;
-    принято += Object.values(л.принято).filter(Boolean).length;
-  });
-
-  const процент = всего === 0 ? 0 : Math.round((принято / всего) * 100);
-  document.getElementById('процент').textContent = процент + '%';
-
-  const круг = document.getElementById('прогресс');
-  const длина = 534;
-  круг.setAttribute('stroke-dashoffset', длина - (длина * процент / 100));
-
-  document.getElementById('список-статистики').innerHTML = все.map(л => {
-    const прин = Object.values(л.принято).filter(Boolean).length;
-    const нужно = л.днейКурса * л.разВДень;
-    return `
-      <div class="card">
-        <div class="body">
-          <div class="title">${экранировать(л.название)}</div>
-          <div class="sub">${л.дозировка} · курс ${л.днейКурса} дн.</div>
-          <div class="sub">Принято: ${прин} из ${нужно}</div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-// ============ ЭКСПОРТ PDF ============
-async function экспортPDF() {
-  const все = await получитьВсе('лекарства');
-
-  const win = window.open('', '_blank');
-  win.document.write(`
-    <!DOCTYPE html>
-    <html><head><meta charset="UTF-8"><title>Отчёт</title>
-    <style>
-      body { font-family: -apple-system, sans-serif; padding: 40px; }
-      h1 { font-size: 24px; }
-      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-      th, td { padding: 10px; border: 1px solid #ccc; text-align: left; font-size: 14px; }
-      th { background: #f2f2f7; }
-    </style></head><body>
-    <h1>Отчёт по приёму лекарств</h1>
-    <p>Дата: ${new Date().toLocaleDateString('ru')}</p>
-    <table>
-      <tr><th>Лекарство</th><th>Дозировка</th><th>Курс</th><th>Принято</th></tr>
-      ${все.map(л => `
-        <tr>
-          <td>${экранировать(л.название)}</td>
-          <td>${экранировать(л.дозировка)}</td>
-          <td>${л.днейКурса} дн.</td>
-          <td>${Object.values(л.принято).filter(Boolean).length} / ${л.днейКурса * л.разВДень}</td>
-        </tr>
-      `).join('')}
-    </table>
-    </body></html>
-  `);
-  win.document.close();
-  setTimeout(() => win.print(), 300);
-}
-
-// ============ СТАРТ ============
-(async () => {
-  await открытьБД();
-  if ('serviceWorker' in navigator) {
-    await navigator.serviceWorker.register('sw.js');
-  }
-  await обновитьВсё();
-
-  // Проверяем сработавшие уведомления
-  setInterval(обновитьБлижайшие, 30000);
-
-  // Напоминаем о разрешении
-  if (Notification.permission === 'default') {
-    setTimeout(запроситьРазрешение, 2000);
-  }
-})();
+    раз
