@@ -197,35 +197,70 @@ async function обновитьВсё() {
 }
 
 async function обновитьБлижайшие() {
-  const все = await получитьВсе('напоминания');
+  const напоминания = await получитьВсе('напоминания');
   const сейчас = Date.now();
-  const ближайшие = все
+
+  // Обычные напоминания + напоминания-лекарства (они уже в 'напоминания')
+  const все = напоминания
     .filter(н => !н.выполнено)
-    .sort((a, b) => a.когда - b.когда)
-    .slice(0, 20);
+    .sort((a, b) => a.когда - b.когда);
 
   const контейнер = document.getElementById('список-ближайших');
 
-  if (ближайшие.length === 0) {
+  if (все.length === 0) {
     контейнер.innerHTML = '<p class="muted">Пока нет напоминаний</p>';
     return;
   }
 
-  контейнер.innerHTML = ближайшие.map(н => {
-    const д = new Date(н.когда);
-    const время = д.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
-    const дата = д.toLocaleDateString('ru', { day: 'numeric', month: 'short' });
-    const просрочено = н.когда < сейчас;
-    return `
-      <div class="card ${н.важное ? 'important' : ''}" onclick="открытьНапоминание('${н.id}')">
-        <div class="time">${время}</div>
-        <div class="body">
-          <div class="title">${экранировать(н.текст)}</div>
-          <div class="sub">${дата}${просрочено ? ' · просрочено' : ''}</div>
+  // 🆕 Группируем: "сегодня", "завтра", "позже"
+  const сегодняКонец = new Date();
+  сегодняКонец.setHours(23, 59, 59, 999);
+
+  const завтраКонец = new Date(сегодняКонец);
+  завтраКонец.setDate(завтраКонец.getDate() + 1);
+
+  const группы = { 'Сегодня': [], 'Завтра': [], 'Позже': [] };
+
+  все.forEach(н => {
+    if (н.когда <= сегодняКонец.getTime()) группы['Сегодня'].push(н);
+    else if (н.когда <= завтраКонец.getTime()) группы['Завтра'].push(н);
+    else группы['Позже'].push(н);
+  });
+
+  let html = '';
+  for (const [название, список] of Object.entries(группы)) {
+    if (список.length === 0) continue;
+    html += `<h2>${название}</h2>`;
+    html += список.slice(0, 8).map(н => карточкаНапоминания(н, сейчас)).join('');
+  }
+
+  контейнер.innerHTML = html;
+}
+
+// 🆕 Отдельная функция — рендер карточки
+function карточкаНапоминания(н, сейчас) {
+  const д = new Date(н.когда);
+  const время = д.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+  const дата = д.toLocaleDateString('ru', { day: 'numeric', month: 'short' });
+  const просрочено = н.когда < сейчас;
+  const этоЛекарство = !!н.лекарствоId;
+
+  return `
+    <div class="card ${н.важное ? 'important' : ''} ${этоЛекарство ? 'med-card' : ''}"
+         onclick="открытьНапоминание('${н.id}')">
+      <div class="time">${время}</div>
+      <div class="body">
+        <div class="title">
+          ${этоЛекарство ? '💊 ' : ''}${экранировать(н.текст)}
+        </div>
+        <div class="sub">
+          ${дата}${просрочено ? ' · просрочено' : ''}
+          ${этоЛекарство ? ' · нажмите, чтобы отметить' : ''}
         </div>
       </div>
-    `;
-  }).join('');
+      <button class="icon-btn" onclick="event.stopPropagation(); открытьНапоминание('${н.id}')">✏️</button>
+    </div>
+  `;
 }
 
 async function открытьНапоминание(id) {
