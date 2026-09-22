@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Напоминания">
   <meta name="theme-color" content="#f2f2f7">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="style.css">
-  <title>Напоминания</title>
+  <title>Напоминания и Лекарства</title>
 </head>
 <body>
 
-  <!-- ЭКРАН 1: ГЛАВНАЯ -->
+  <!-- ================= ЭКРАН 1: ГЛАВНАЯ ================= -->
   <div id="screen-home" class="screen active">
     <header>
       <h1>Напоминания</h1>
@@ -32,14 +33,12 @@
         <span class="arrow">›</span>
       </button>
 
-      <h2>Ближайшие</h2>
       <div id="список-ближайших"></div>
     </main>
   </div>
 
-  <!-- ЭКРАН 2: ФОРМА НАПОМИНАНИЯ -->
+  <!-- ================= ЭКРАН 2: ФОРМА НАПОМИНАНИЯ ================= -->
   <div id="screen-form" class="screen">
-    <input type="hidden" id="редактируемое-id">
     <header>
       <button class="back" onclick="перейти('screen-home')">‹ Назад</button>
       <h1>Новое напоминание</h1>
@@ -47,7 +46,7 @@
     </header>
 
     <main>
-      <!-- Текстовое поле -->
+      <!-- Текст -->
       <div class="field">
         <textarea id="текст" placeholder="О чём напомнить?" rows="2"></textarea>
       </div>
@@ -57,7 +56,7 @@
       <div class="intervals">
         <button class="interval" data-мин="30">30 мин</button>
         <button class="interval" data-мин="80">80 мин</button>
-        <button class="interval" data-мин="60">1 час</button>
+        <button class="interval active" data-мин="60">1 час</button>
         <button class="interval" data-мин="1440">1 день</button>
       </div>
 
@@ -102,39 +101,41 @@
     </main>
   </div>
 
- <!-- ЭКРАН 3: ТРЕКЕР ЛЕКАРСТВ -->
-<div id="screen-tracker" class="screen">
-  <header>
-    <button class="back" onclick="перейти('screen-home')">‹ Назад</button>
-    <h1>Трекер лекарств</h1>
-    <button class="save" onclick="открытьФормуЛекарства()">+</button>
-  </header>
-  <main>
-    <!-- Таблица Пн-Вс × Утро-День-Вечер -->
-    <div class="table-wrap">
-      <table id="таблица-лекарств">
-        <thead>
-          <tr>
-            <th></th>
-            <th>Пн</th><th>Вт</th><th>Ср</th>
-            <th>Чт</th><th>Пт</th><th>Сб</th><th>Вс</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td class="row-label">Утро</td>  <td data-day="1" data-time="утро"></td><td data-day="2" data-time="утро"></td><td data-day="3" data-time="утро"></td><td data-day="4" data-time="утро"></td><td data-day="5" data-time="утро"></td><td data-day="6" data-time="утро"></td><td data-day="7" data-time="утро"></td></tr>
-          <tr><td class="row-label">День</td>  <td data-day="1" data-time="день"></td><td data-day="2" data-time="день"></td><td data-day="3" data-time="день"></td><td data-day="4" data-time="день"></td><td data-day="5" data-time="день"></td><td data-day="6" data-time="день"></td><td data-day="7" data-time="день"></td></tr>
-          <tr><td class="row-label">Вечер</td> <td data-day="1" data-time="вечер"></td><td data-day="2" data-time="вечер"></td><td data-day="3" data-time="вечер"></td><td data-day="4" data-time="вечер"></td><td data-day="5" data-time="вечер"></td><td data-day="6" data-time="вечер"></td><td data-day="7" data-time="вечер"></td></tr>
-        </tbody>
-      </table>
-    </div>
+  <!-- ================= ЭКРАН 3: ТРЕКЕР ЛЕКАРСТВ ================= -->
+  <div id="screen-tracker" class="screen">
+    <header>
+      <button class="back" onclick="перейти('screen-home')">‹ Назад</button>
+      <h1>Трекер лекарств</h1>
+      <button class="save" onclick="открытьФормуЛекарства()">+</button>
+    </header>
 
-    <!-- 🆕 Список созданных лекарств с кнопками редактировать/удалить -->
-    <h2>Мои лекарства</h2>
-    <div id="список-лекарств"></div>
-  </main>
-</div>
-  
-  <!-- ЭКРАН 4: ФОРМА ЛЕКАРСТВА -->
+    <main>
+      <div class="table-wrap">
+        <table id="таблица-лекарств">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Пн</th><th>Вт</th><th>Ср</th>
+              <th>Чт</th><th>Пт</th><th>Сб</th><th>Вс</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="row-label">Утро</td>
+              <td data-day="1" data-time="утро"></td><td data-day="2" data-time="утро"></td><td data-day="3" data-time="утро"></td><td data-day="4" data-time="утро"></td><td data-day="5" data-time="утро"></td><td data-day="6" data-time="утро"></td><td data-day="7" data-time="утро"></td></tr>
+            <tr><td class="row-label">День</td>
+              <td data-day="1" data-time="день"></td><td data-day="2" data-time="день"></td><td data-day="3" data-time="день"></td><td data-day="4" data-time="день"></td><td data-day="5" data-time="день"></td><td data-day="6" data-time="день"></td><td data-day="7" data-time="день"></td></tr>
+            <tr><td class="row-label">Вечер</td>
+              <td data-day="1" data-time="вечер"></td><td data-day="2" data-time="вечер"></td><td data-day="3" data-time="вечер"></td><td data-day="4" data-time="вечер"></td><td data-day="5" data-time="вечер"></td><td data-day="6" data-time="вечер"></td><td data-day="7" data-time="вечер"></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Мои лекарства</h2>
+      <div id="список-лекарств"></div>
+    </main>
+  </div>
+
+  <!-- ================= ЭКРАН 4: ФОРМА ЛЕКАРСТВА ================= -->
   <div id="screen-med-form" class="screen">
     <header>
       <button class="back" onclick="перейти('screen-tracker')">‹ Назад</button>
@@ -147,7 +148,7 @@
       <input id="дозировка-л" placeholder="Дозировка (например 100 мг)">
 
       <label class="section-title">Когда принимать</label>
-      <div class="chips">
+      <div class="chips" id="chips-времени">
         <label><input type="checkbox" value="утро" checked> Утро</label>
         <label><input type="checkbox" value="день"> День</label>
         <label><input type="checkbox" value="вечер"> Вечер</label>
@@ -174,7 +175,7 @@
     </main>
   </div>
 
-  <!-- ЭКРАН 5: СТАТИСТИКА -->
+  <!-- ================= ЭКРАН 5: СТАТИСТИКА ================= -->
   <div id="screen-stats" class="screen">
     <header>
       <h1>Статистика</h1>
@@ -199,7 +200,7 @@
     </main>
   </div>
 
-  <!-- НИЖНЕЕ МЕНЮ -->
+  <!-- ================= НИЖНЕЕ МЕНЮ ================= -->
   <nav class="tabbar">
     <button class="tab active" data-screen="screen-home"><span>🏠</span>Главная</button>
     <button class="tab" data-screen="screen-stats"><span>📊</span>Статистика</button>
