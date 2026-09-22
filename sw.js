@@ -21,9 +21,24 @@ self.addEventListener('activate', e => {
 });
 
 // ===== Офлайн-кэш =====
+// ⚠️ Кэшируем ТОЛЬКО свои файлы, все внешние запросы (Telegram и др.) пропускаем
 self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+
+  // Пропускаем всё, что НЕ наш домен (Telegram, любые API и т.д.)
+  if (url.origin !== self.location.origin) {
+    return; // браузер обработает запрос сам, SW не вмешивается
+  }
+
+  // Пропускаем POST/PUT/DELETE — их кэшировать бессмысленно
+  if (e.request.method !== 'GET') {
+    return;
+  }
+
+  // Свои GET-запросы — из кэша, а если нет — из сети
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request))
+      .catch(() => caches.match('/index.html'))
   );
 });
 
