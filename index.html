@@ -122,13 +122,17 @@
           <tbody>
             <tr><td class="row-label">Утро</td>
               <td data-day="1" data-time="утро"></td><td data-day="2" data-time="утро"></td><td data-day="3" data-time="утро"></td><td data-day="4" data-time="утро"></td><td data-day="5" data-time="утро"></td><td data-day="6" data-time="утро"></td><td data-day="7" data-time="утро"></td></tr>
-            <tr><td class="row-label">День</td>
+            <tr><td class="row-label">Обед</td>
               <td data-day="1" data-time="день"></td><td data-day="2" data-time="день"></td><td data-day="3" data-time="день"></td><td data-day="4" data-time="день"></td><td data-day="5" data-time="день"></td><td data-day="6" data-time="день"></td><td data-day="7" data-time="день"></td></tr>
             <tr><td class="row-label">Вечер</td>
               <td data-day="1" data-time="вечер"></td><td data-day="2" data-time="вечер"></td><td data-day="3" data-time="вечер"></td><td data-day="4" data-time="вечер"></td><td data-day="5" data-time="вечер"></td><td data-day="6" data-time="вечер"></td><td data-day="7" data-time="вечер"></td></tr>
           </tbody>
         </table>
       </div>
+
+      <!-- Сегодня: быстрые отметки -->
+      <h2>Сегодня — отметить приём</h2>
+      <div id="сегодня-приёмы"></div>
 
       <h2>Мои лекарства</h2>
       <div id="список-лекарств"></div>
@@ -147,15 +151,31 @@
       <input id="название-л" placeholder="Название лекарства">
       <input id="дозировка-л" placeholder="Дозировка (например 100 мг)">
 
-      <label class="section-title">Когда принимать</label>
-      <div class="chips" id="chips-времени">
-        <label><input type="checkbox" value="утро" checked> Утро</label>
-        <label><input type="checkbox" value="день"> День</label>
-        <label><input type="checkbox" value="вечер"> Вечер</label>
+      <label class="section-title">Когда принимать и во сколько</label>
+
+      <div class="time-row">
+        <label class="time-toggle">
+          <input type="checkbox" id="вкл-утро" value="утро" checked>
+          <span>🌅 Утро</span>
+        </label>
+        <input type="time" id="время-утро" value="08:00">
       </div>
 
-      <label class="section-title">Сколько раз в день</label>
-      <input type="number" id="раз-в-день" value="1" min="1" max="5">
+      <div class="time-row">
+        <label class="time-toggle">
+          <input type="checkbox" id="вкл-день" value="день">
+          <span>☀️ Обед</span>
+        </label>
+        <input type="time" id="время-день" value="14:00">
+      </div>
+
+      <div class="time-row">
+        <label class="time-toggle">
+          <input type="checkbox" id="вкл-вечер" value="вечер">
+          <span>🌙 Вечер</span>
+        </label>
+        <input type="time" id="время-вечер" value="20:00">
+      </div>
 
       <label class="section-title">Дни недели</label>
       <div class="chips" id="дни-недели">
