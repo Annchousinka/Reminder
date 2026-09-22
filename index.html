@@ -101,34 +101,38 @@
     </main>
   </div>
 
-  <!-- ЭКРАН 3: ТРЕКЕР ЛЕКАРСТВ -->
-  <div id="screen-tracker" class="screen">
-    <header>
-      <button class="back" onclick="перейти('screen-home')">‹ Назад</button>
-      <h1>Трекер лекарств</h1>
-      <button class="save" onclick="открытьФормуЛекарства()">+</button>
-    </header>
+ <!-- ЭКРАН 3: ТРЕКЕР ЛЕКАРСТВ -->
+<div id="screen-tracker" class="screen">
+  <header>
+    <button class="back" onclick="перейти('screen-home')">‹ Назад</button>
+    <h1>Трекер лекарств</h1>
+    <button class="save" onclick="открытьФормуЛекарства()">+</button>
+  </header>
+  <main>
+    <!-- Таблица Пн-Вс × Утро-День-Вечер -->
+    <div class="table-wrap">
+      <table id="таблица-лекарств">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Пн</th><th>Вт</th><th>Ср</th>
+            <th>Чт</th><th>Пт</th><th>Сб</th><th>Вс</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="row-label">Утро</td>  <td data-day="1" data-time="утро"></td><td data-day="2" data-time="утро"></td><td data-day="3" data-time="утро"></td><td data-day="4" data-time="утро"></td><td data-day="5" data-time="утро"></td><td data-day="6" data-time="утро"></td><td data-day="7" data-time="утро"></td></tr>
+          <tr><td class="row-label">День</td>  <td data-day="1" data-time="день"></td><td data-day="2" data-time="день"></td><td data-day="3" data-time="день"></td><td data-day="4" data-time="день"></td><td data-day="5" data-time="день"></td><td data-day="6" data-time="день"></td><td data-day="7" data-time="день"></td></tr>
+          <tr><td class="row-label">Вечер</td> <td data-day="1" data-time="вечер"></td><td data-day="2" data-time="вечер"></td><td data-day="3" data-time="вечер"></td><td data-day="4" data-time="вечер"></td><td data-day="5" data-time="вечер"></td><td data-day="6" data-time="вечер"></td><td data-day="7" data-time="вечер"></td></tr>
+        </tbody>
+      </table>
+    </div>
 
-    <main>
-      <div class="table-wrap">
-        <table id="таблица-лекарств">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Пн</th><th>Вт</th><th>Ср</th>
-              <th>Чт</th><th>Пт</th><th>Сб</th><th>Вс</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td class="row-label">Утро</td>  <td data-day="1" data-time="утро"></td><td data-day="2" data-time="утро"></td><td data-day="3" data-time="утро"></td><td data-day="4" data-time="утро"></td><td data-day="5" data-time="утро"></td><td data-day="6" data-time="утро"></td><td data-day="7" data-time="утро"></td></tr>
-            <tr><td class="row-label">День</td>  <td data-day="1" data-time="день"></td><td data-day="2" data-time="день"></td><td data-day="3" data-time="день"></td><td data-day="4" data-time="день"></td><td data-day="5" data-time="день"></td><td data-day="6" data-time="день"></td><td data-day="7" data-time="день"></td></tr>
-            <tr><td class="row-label">Вечер</td> <td data-day="1" data-time="вечер"></td><td data-day="2" data-time="вечер"></td><td data-day="3" data-time="вечер"></td><td data-day="4" data-time="вечер"></td><td data-day="5" data-time="вечер"></td><td data-day="6" data-time="вечер"></td><td data-day="7" data-time="вечер"></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </main>
-  </div>
-
+    <!-- 🆕 Список созданных лекарств с кнопками редактировать/удалить -->
+    <h2>Мои лекарства</h2>
+    <div id="список-лекарств"></div>
+  </main>
+</div>
+  
   <!-- ЭКРАН 4: ФОРМА ЛЕКАРСТВА -->
   <div id="screen-med-form" class="screen">
     <header>
