@@ -11,7 +11,7 @@ function открытьБД() {
     const req = indexedDB.open('напоминания', 1);
     req.onupgradeneeded = e => {
       const d = e.target.result;
-      if (!d.objectStoreNames.contains('напоминания'))
+      if (!d.objectStoreNames.contains('нпоминания'))
         d.createObjectStore('напоминания', { keyPath: 'id' });
       if (!d.objectStoreNames.contains('лекарства'))
         d.createObjectStore('лекарства', { keyPath: 'id' });
@@ -246,7 +246,11 @@ async function сохранитьНапоминание() {
 
   await сохранить('напоминания', н);
   await запланироватьУведомление(н);
+   
+// 🆕 Дублируем в Telegram
+await отправитьВTelegram(`🔔 <b>${экранировать(текст)}</b>\n⏰ ${new Date(когда).toLocaleString('ru')}`);
 
+редактируемоеId = null;
   редактируемоеId = null;
   перейти('screen-home');
 }
@@ -292,7 +296,30 @@ async function запланироватьУведомление(н) {
     задержка
   });
 }
+// ============ TELEGRAM ============
+// Вставьте сюда ваши данные из Шагов 1 и 2
+const TELEGRAM_ТОКЕН = '8809648802:AAFKyDzzKmbOO3g-4rDk0dQHiMOn0QtUkZg';
+const TELEGRAM_CHAT_ID = '891225443';
 
+async function отправитьВTelegram(текст) {
+  if (!TELEGRAM_ТОКЕН || !TELEGRAM_CHAT_ID) return;
+  
+  const url = `https://api.telegram.org/bot${TELEGRAM_ТОКЕН}/sendMessage`;
+  
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: текст,
+        parse_mode: 'HTML'
+      })
+    });
+  } catch (e) {
+    console.warn('Не удалось отправить в Telegram:', e);
+  }
+}
 // ============ ЛЕКАРСТВА ============
 let редактируемоеЛекарствоId = null;
 
@@ -425,7 +452,12 @@ async function создатьНапоминаниеНаПриём(л) {
   await сохранить('напоминания', напоминание);
   await запланироватьУведомление(напоминание);
 }
-
+// 🆕 Дублируем в Telegram
+await отправитьВTelegram(
+  `💊 <b>${экранировать(л.название)}</b>\n` +
+  `Время: ${ближайшее.вр} (${л.времяТочное[ближайшее.вр]})\n` +
+  `Дозировка: ${экранировать(л.дозировка)}`
+);
 async function отменитьУведомленияЛекарства(лId) {
   const все = await получитьВсе('напоминания');
   const связанные = все.filter(н => н.лекарствоId === лId);
