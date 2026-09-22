@@ -4,6 +4,7 @@
   --blue: #007aff;
   --green: #34c759;
   --red: #ff3b30;
+  --orange: #ff9500;
   --bg: #f2f2f7;
   --card: #ffffff;
   --text: #000;
@@ -16,6 +17,7 @@
     --bg: #000;
     --card: #1c1c1e;
     --text: #fff;
+    --muted: #8e8e93;
     --border: #38383a;
   }
 }
@@ -24,15 +26,16 @@ body {
   font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
   background: var(--bg);
   color: var(--text);
-  padding-bottom: 90px;
+  padding-bottom: 100px;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Экраны */
+/* ===== Экраны ===== */
 .screen { display: none; min-height: 100vh; }
 .screen.active { display: block; }
 
-/* Шапка */
+/* ===== Шапка ===== */
 header {
   display: flex;
   align-items: center;
@@ -43,18 +46,20 @@ header {
   top: 0;
   z-index: 10;
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 header h1 { font-size: 22px; font-weight: 700; }
 header .back, header .save {
   background: none; border: none;
   color: var(--blue); font-size: 17px;
   cursor: pointer;
+  padding: 4px 8px;
 }
-header .save { font-weight: 600; }
+header .save { font-weight: 600; font-size: 20px; }
 
 main { padding: 0 16px 24px; }
 
-/* Большие кнопки */
+/* ===== Большие кнопки ===== */
 .big-btn {
   display: flex; align-items: center; gap: 14px;
   width: 100%; padding: 16px;
@@ -64,6 +69,7 @@ main { padding: 0 16px 24px; }
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   transition: transform 0.1s;
+  color: var(--text);
 }
 .big-btn:active { transform: scale(0.97); }
 .big-btn .icon {
@@ -77,17 +83,18 @@ main { padding: 0 16px 24px; }
 .big-btn .label { flex: 1; text-align: left; font-size: 17px; font-weight: 600; }
 .big-btn .arrow { color: var(--muted); font-size: 22px; }
 
-/* Заголовок секции */
+/* ===== Секции ===== */
 .section-title {
   display: block;
   font-size: 13px; color: var(--muted);
   text-transform: uppercase;
   margin: 20px 0 8px;
   padding-left: 4px;
+  letter-spacing: 0.5px;
 }
 h2 { font-size: 20px; font-weight: 700; margin: 20px 0 12px; }
 
-/* Поля ввода */
+/* ===== Поля ввода ===== */
 input[type="text"], input[type="number"], input[type="date"],
 input[type="time"], textarea, input:not([type]) {
   width: 100%;
@@ -102,7 +109,7 @@ input[type="time"], textarea, input:not([type]) {
 }
 textarea { resize: vertical; }
 
-/* Интервалы */
+/* ===== Интервалы ===== */
 .intervals { display: flex; gap: 8px; margin-bottom: 12px; }
 .interval {
   flex: 1;
@@ -113,10 +120,11 @@ textarea { resize: vertical; }
   font-size: 13px; font-weight: 600;
   color: var(--text);
   cursor: pointer;
+  transition: all 0.15s;
 }
 .interval.active { background: var(--blue); color: #fff; border-color: var(--blue); }
 
-/* Строки-кнопки */
+/* ===== Строки-кнопки ===== */
 .row-btn {
   display: flex; align-items: center; gap: 12px;
   width: 100%; padding: 14px 16px;
@@ -126,20 +134,24 @@ textarea { resize: vertical; }
   font-size: 17px; color: var(--text);
   cursor: pointer;
   text-align: left;
+  font-family: inherit;
 }
 .row-btn .muted { margin-left: auto; color: var(--muted); font-size: 15px; }
 .row-btn.red { color: var(--red); }
 .row-btn:active { background: var(--border); }
+#screen-form .row-btn.red { display: none; }
 
-/* Переключатель */
+/* ===== Переключатель ===== */
 .toggle {
   margin-left: auto;
   width: 50px; height: 30px;
   appearance: none;
+  -webkit-appearance: none;
   background: var(--border);
   border-radius: 15px;
   position: relative;
   cursor: pointer;
+  transition: background 0.2s;
 }
 .toggle:checked { background: var(--red); }
 .toggle::after {
@@ -148,10 +160,11 @@ textarea { resize: vertical; }
   width: 26px; height: 26px;
   background: #fff; border-radius: 50%;
   transition: left 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .toggle:checked::after { left: 22px; }
 
-/* Чипсы */
+/* ===== Чипсы ===== */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .chips label {
   padding: 8px 14px;
@@ -160,15 +173,19 @@ textarea { resize: vertical; }
   border-radius: 20px;
   font-size: 15px;
   cursor: pointer;
+  user-select: none;
 }
 .chips input { display: none; }
-.chips input:checked + *,
 .chips label:has(input:checked) {
   background: var(--blue); color: #fff; border-color: var(--blue);
 }
 
-/* Таблица */
-.table-wrap { overflow-x: auto; margin-top: 8px; }
+/* ===== Таблица ===== */
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 8px;
+  -webkit-overflow-scrolling: touch;
+}
 table {
   width: 100%; min-width: 500px;
   border-collapse: collapse;
@@ -182,10 +199,12 @@ th, td {
   font-size: 14px;
   border: 1px solid var(--border);
 }
-th { background: var(--border); font-weight: 600; }
+th { background: var(--border); font-weight: 600; font-size: 13px; }
 .row-label {
   text-align: left; font-weight: 600;
-  padding-left: 12px; background: var(--border);
+  padding-left: 12px;
+  background: var(--border);
+  font-size: 13px;
 }
 td .pill {
   display: inline-block;
@@ -194,16 +213,17 @@ td .pill {
   border-radius: 10px;
   font-size: 11px;
   font-weight: 600;
+  margin: 1px 0;
 }
 
-/* Круг статистики */
+/* ===== Круг статистики ===== */
 .circle-wrap {
   position: relative;
   width: 220px; height: 220px;
   margin: 30px auto;
 }
 .circle { width: 100%; height: 100%; }
-.circle #прогресс { transition: stroke-dashoffset 0.6s; }
+.circle #прогресс { transition: stroke-dashoffset 0.6s ease; }
 .circle-text {
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
@@ -212,7 +232,7 @@ td .pill {
 .circle-text strong { font-size: 44px; font-weight: 700; }
 .circle-text span { font-size: 13px; color: var(--muted); }
 
-/* Карточки ближайших */
+/* ===== Карточки ===== */
 .card {
   background: var(--card);
   border-radius: 14px;
@@ -222,20 +242,68 @@ td .pill {
   gap: 12px;
   align-items: flex-start;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.1s;
 }
-.card.important { background: #ffe5e5; border-left: 4px solid var(--red); }
+.card:active { transform: scale(0.99); }
+
+.card.important {
+  background: #ffe5e5;
+  border-left: 4px solid var(--red);
+}
 @media (prefers-color-scheme: dark) {
   .card.important { background: #3a1c1c; }
 }
-.card .time {
-  font-weight: 700; color: var(--blue);
-  min-width: 50px;
-}
-.card .body { flex: 1; }
-.card .title { font-weight: 600; margin-bottom: 2px; }
-.card .sub { font-size: 13px; color: var(--muted); }
 
-/* Нижнее меню */
+.med-card { border-left: 4px solid var(--green); }
+
+.card .time {
+  font-weight: 700;
+  color: var(--blue);
+  min-width: 50px;
+  font-size: 15px;
+  padding-top: 2px;
+}
+.card.med-card .time { color: var(--green); }
+
+.card .body { flex: 1; min-width: 0; }
+.card .title {
+  font-weight: 600;
+  margin-bottom: 2px;
+  font-size: 16px;
+  word-wrap: break-word;
+}
+.card .sub {
+  font-size: 13px;
+  color: var(--muted);
+  word-wrap: break-word;
+}
+
+.med-info { border-left: 4px solid var(--green); }
+
+/* ===== Иконочные кнопки ===== */
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s;
+  color: var(--text);
+}
+.icon-btn:hover, .icon-btn:active { background: var(--border); }
+.icon-btn.red { color: var(--red); }
+
+.card .actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: auto;
+}
+
+/* ===== Нижнее меню ===== */
 .tabbar {
   position: fixed;
   bottom: 0; left: 0; right: 0;
@@ -253,43 +321,12 @@ td .pill {
   font-size: 10px;
   color: var(--muted);
   cursor: pointer;
+  font-family: inherit;
+  padding: 4px;
 }
-.tab span { font-size: 22px; }
+.tab span { font-size: 22px; line-height: 1; }
 .tab.active { color: var(--blue); }
 
-.hidden { display: none; }
+/* ===== Утилиты ===== */
+.hidden { display: none !important; }
 .muted { color: var(--muted); font-size: 14px; }
-
-/* Иконочные кнопки */
-.icon-btn {
-  background: none;
-  border: none;
-  font-size: 18px;
-  padding: 6px 8px;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: background 0.15s;
-}
-.icon-btn:hover, .icon-btn:active {
-  background: var(--border);
-}
-.icon-btn.red { color: var(--red); }
-
-/* Карточка с действиями справа */
-.card { position: relative; }
-.card .actions {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-left: auto;
-}
-
-/* Медицинская карточка — другой оттенок */
-.med-card { border-left: 4px solid var(--green); }
-.med-info {
-  cursor: pointer;
-  border-left: 4px solid var(--green);
-}
-
-/* Кнопка "Удалить" в форме по умолчанию скрыта */
-#screen-form .row-btn.red { display: none; }
