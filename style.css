@@ -259,3 +259,37 @@ td .pill {
 
 .hidden { display: none; }
 .muted { color: var(--muted); font-size: 14px; }
+
+/* Иконочные кнопки */
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.icon-btn:hover, .icon-btn:active {
+  background: var(--border);
+}
+.icon-btn.red { color: var(--red); }
+
+/* Карточка с действиями справа */
+.card { position: relative; }
+.card .actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Медицинская карточка — другой оттенок */
+.med-card { border-left: 4px solid var(--green); }
+.med-info {
+  cursor: pointer;
+  border-left: 4px solid var(--green);
+}
+
+/* Кнопка "Удалить" в форме по умолчанию скрыта */
+#screen-form .row-btn.red { display: none; }
