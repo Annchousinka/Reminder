@@ -302,4 +302,409 @@ async function сохранитьЛекарство() {
     название,
     дозировка: document.getElementById('дозировка-л').value || '1 таблетка',
     времена,
-    раз
+    разВДень: parseInt(document.getElementById('раз-в-день').value),
+    дни,
+    днейКурса: parseInt(document.getElementById('дней-курса').value),
+    датаНачала: document.getElementById('дата-начала').value,
+    принято: {}
+  };
+
+  if (редактируемоеЛекарствоId) {
+    const старые = (await получитьВсе('лекарства'))
+      .find(x => x.id === редактируемоеЛекарствоId);
+    if (старые?.принято) л.принято = старые.принято;
+    await отменитьУведомленияЛекарства(редактируемоеЛекарствоId);
+  }
+
+  await сохранить('лекарства', л);
+
+  // 1. Сразу создаём напоминание на ближайший приём
+  await создатьНапоминаниеНаПриём(л);
+
+  // 2. Планируем ВСЕ приёмы на весь курс + напоминание о повторе
+  await запланироватьЛекарство(л);
+
+  редактируемоеЛекарствоId = null;
+
+  // 3. Переключаемся на трекер
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.querySelector('.tab[data-screen="screen-tracker"]')?.classList.add('active');
+  перейти('screen-tracker');
+}
+
+// Создать обычное напоминание на ближайший приём лекарства
+async function создатьНапоминаниеНаПриём(л) {
+  const часы = { утро: 8, день: 14, вечер: 20 };
+  const старт = new Date(л.датаНачала);
+  let ближайшее = null;
+
+  for (let д = 0; д < л.днейКурса; д++) {
+    const дата = new Date(старт);
+    дата.setDate(дата.getDate() + д);
+    const нашДень = дата.getDay() === 0 ? 7 : дата.getDay();
+    if (!л.дни.includes(нашДень)) continue;
+
+    for (const вр of л.времена) {
+      const когда = new Date(дата);
+      когда.setHours(часы[вр], 0, 0, 0);
+      if (когда.getTime() > Date.now()) {
+        if (!ближайшее || когда < ближайшее.когда) {
+          ближайшее = { когда, вр };
+        }
+      }
+    }
+    if (ближайшее) break;
+  }
+
+  if (!ближайшее) return;
+
+  const напоминание = {
+    id: `мед-${л.id}-${ближайшее.когда.getTime()}`,
+    текст: `💊 Принять: ${л.название}`,
+    когда: ближайшее.когда.getTime(),
+    интервал: 60,
+    важное: true,
+    фото: null,
+    документ: null,
+    выполнено: false,
+    лекарствоId: л.id
+  };
+
+  await сохранить('напоминания', напоминание);
+  await запланироватьУведомление(напоминание);
+}
+
+// Отмена всех уведомлений лекарства
+async function отменитьУведомленияЛекарства(лId) {
+  const все = await получитьВсе('напоминания');
+  const связанные = все.filter(н => н.лекарствоId === лId);
+  const рег = await navigator.serviceWorker.ready;
+
+  for (const н of связанные) {
+    await удалитьИз('напоминания', н.id);
+    рег.active.postMessage({ тип: 'ОТМЕНИТЬ', id: н.id });
+  }
+}
+
+async function запланироватьЛекарство(л) {
+  const разрешено = await запроситьРазрешение();
+  if (!разрешено) return;
+
+  const часы = { утро: 8, день: 14, вечер: 20 };
+  const рег = await navigator.serviceWorker.ready;
+  const старт = new Date(л.датаНачала);
+
+  for (let д = 0; д < л.днейКурса; д++) {
+    const дата = new Date(старт);
+    дата.setDate(дата.getDate() + д);
+    const нашДень = дата.getDay() === 0 ? 7 : дата.getDay();
+    if (!л.дни.includes(нашДень)) continue;
+
+    for (const вр of л.времена) {
+      const когда = new Date(дата);
+      когда.setHours(часы[вр], 0, 0, 0);
+      const задержка = когда.getTime() - Date.now();
+      if (задержка <= 0) continue;
+
+      рег.active.postMessage({
+        тип: 'ЗАПЛАНИРОВАТЬ',
+        напоминание: {
+          id: `${л.id}-${д}-${вр}`,
+          текст: `💊 ${л.название}`,
+          подтекст: `${вр} · ${л.дозировка}`,
+          когда: когда.getTime(),
+          лекарствоId: л.id,
+          метка: `${дата.toISOString().slice(0,10)}-${вр}`
+        },
+        задержка
+      });
+    }
+  }
+
+  // Напоминание о повторе курса
+  const конец = new Date(старт);
+  конец.setDate(конец.getDate() + л.днейКурса - 1);
+  конец.setHours(10, 0, 0, 0);
+  const задержка = конец.getTime() - Date.now();
+  if (задержка > 0) {
+    рег.active.postMessage({
+      тип: 'ЗАПЛАНИРОВАТЬ',
+      напоминание: {
+        id: `${л.id}-повтор`,
+        текст: `🔄 Пора повторить курс`,
+        подтекст: `«${л.название}» заканчивается`,
+        когда: конец.getTime()
+      },
+      задержка
+    });
+  }
+}
+
+async function редактироватьЛекарство(id) {
+  const все = await получитьВсе('лекарства');
+  const л = все.find(x => x.id === id);
+  if (л) открытьФормуЛекарства(л);
+}
+
+async function удалитьЛекарство(id) {
+  if (!confirm('Удалить это лекарство и все его напоминания?')) return;
+
+  await удалитьИз('лекарства', id);
+  await отменитьУведомленияЛекарства(id);
+
+  await обновитьТаблицу();
+  await обновитьБлижайшие();
+  await обновитьСтатистику();
+}
+
+// Отметить приём
+async function отметитьПриём(лId) {
+  const все = await получитьВсе('лекарства');
+  const л = все.find(x => x.id === лId);
+  if (!л) return;
+
+  const сегодня = сегодняISO();
+  const время = prompt(
+    `Какое время отметить для «${л.название}»?\n\nДоступно: ${л.времена.join(', ')}`,
+    л.времена[0]
+  );
+  if (!время || !л.времена.includes(время)) return;
+
+  const ключ = `${сегодня}-${время}`;
+  л.принято[ключ] = !л.принято[ключ];
+  await сохранить('лекарства', л);
+
+  await обновитьТаблицу();
+  await обновитьСтатистику();
+}
+
+// ============ ГЛАВНЫЙ ЭКРАН ============
+async function обновитьВсё() {
+  await обновитьБлижайшие();
+  await обновитьТаблицу();
+  await обновитьСтатистику();
+}
+
+async function обновитьБлижайшие() {
+  const напоминания = await получитьВсе('напоминания');
+  const сейчас = Date.now();
+
+  const все = напоминания
+    .filter(н => !н.выполнено)
+    .sort((a, b) => a.когда - b.когда);
+
+  const контейнер = document.getElementById('список-ближайших');
+
+  if (все.length === 0) {
+    контейнер.innerHTML = '<h2>Ближайшие</h2><p class="muted">Пока нет напоминаний</p>';
+    return;
+  }
+
+  const сегодняКонец = new Date();
+  сегодняКонец.setHours(23, 59, 59, 999);
+
+  const завтраКонец = new Date(сегодняКонец);
+  завтраКонец.setDate(завтраКонец.getDate() + 1);
+
+  const группы = { 'Сегодня': [], 'Завтра': [], 'Позже': [] };
+
+  все.forEach(н => {
+    if (н.когда <= сегодняКонец.getTime()) группы['Сегодня'].push(н);
+    else if (н.когда <= завтраКонец.getTime()) группы['Завтра'].push(н);
+    else группы['Позже'].push(н);
+  });
+
+  let html = '';
+  for (const [название, список] of Object.entries(группы)) {
+    if (список.length === 0) continue;
+    html += `<h2>${название}</h2>`;
+    html += список.slice(0, 10).map(н => карточкаНапоминания(н, сейчас)).join('');
+  }
+
+  контейнер.innerHTML = html;
+}
+
+function карточкаНапоминания(н, сейчас) {
+  const время = форматВремени(н.когда);
+  const дата = форматДаты(н.когда);
+  const просрочено = н.когда < сейчас;
+  const этоЛекарство = !!н.лекарствоId;
+
+  return `
+    <div class="card ${н.важное ? 'important' : ''} ${этоЛекарство ? 'med-card' : ''}"
+         onclick="открытьНапоминание('${н.id}')">
+      <div class="time">${время}</div>
+      <div class="body">
+        <div class="title">${экранировать(н.текст)}</div>
+        <div class="sub">
+          ${дата}${просрочено ? ' · просрочено' : ''}
+          ${этоЛекарство ? ' · нажмите для отметки' : ''}
+        </div>
+      </div>
+      <button class="icon-btn" onclick="event.stopPropagation(); открытьНапоминание('${н.id}')">✏️</button>
+    </div>
+  `;
+}
+
+// ============ ТАБЛИЦА + КАРТОЧКИ ЛЕКАРСТВ ============
+async function обновитьТаблицу() {
+  const все = await получитьВсе('лекарства');
+
+  // Таблица
+  document.querySelectorAll('#таблица-лекарств td[data-day]').forEach(td => {
+    const день = parseInt(td.dataset.day);
+    const время = td.dataset.time;
+    const подходящие = все.filter(л =>
+      л.дни.includes(день) && л.времена.includes(время)
+    );
+    td.innerHTML = подходящие
+      .map(л => `<span class="pill">${экранировать(л.название.slice(0, 3))}</span>`)
+      .join('<br>');
+  });
+
+  // Список карточек
+  const список = document.getElementById('список-лекарств');
+  if (все.length === 0) {
+    список.innerHTML = '<p class="muted">Пока нет лекарств. Нажмите «+» сверху.</p>';
+    return;
+  }
+
+  список.innerHTML = все.map(л => {
+    const принято = Object.values(л.принято).filter(Boolean).length;
+    const нужно = л.днейКурса * л.разВДень;
+    const прогресс = нужно ? Math.round((принято / нужно) * 100) : 0;
+
+    return `
+      <div class="card med-info" onclick="отметитьПриём('${л.id}')">
+        <div class="body">
+          <div class="title">💊 ${экранировать(л.название)}</div>
+          <div class="sub">${экранировать(л.дозировка)} · ${л.времена.join(', ')} · ${л.днейКурса} дн.</div>
+          <div class="sub">Принято: ${принято} из ${нужно} (${прогресс}%)</div>
+        </div>
+        <div class="actions">
+          <button class="icon-btn" onclick="event.stopPropagation(); редактироватьЛекарство('${л.id}')">✏️</button>
+          <button class="icon-btn red" onclick="event.stopPropagation(); удалитьЛекарство('${л.id}')">🗑</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============ СТАТИСТИКА ============
+async function обновитьСтатистику() {
+  const все = await получитьВсе('лекарства');
+  let всего = 0, принято = 0;
+
+  все.forEach(л => {
+    всего += л.днейКурса * л.разВДень;
+    принято += Object.values(л.принято).filter(Boolean).length;
+  });
+
+  const процент = всего === 0 ? 0 : Math.round((принято / всего) * 100);
+  document.getElementById('процент').textContent = процент + '%';
+
+  const круг = document.getElementById('прогресс');
+  const длина = 534;
+  круг.setAttribute('stroke-dashoffset', длина - (длина * процент / 100));
+
+  const контейнер = document.getElementById('список-статистики');
+  if (все.length === 0) {
+    контейнер.innerHTML = '<p class="muted" style="text-align:center">Нет данных для статистики</p>';
+    return;
+  }
+
+  контейнер.innerHTML = все.map(л => {
+    const прин = Object.values(л.принято).filter(Boolean).length;
+    const нужно = л.днейКурса * л.разВДень;
+    return `
+      <div class="card">
+        <div class="body">
+          <div class="title">${экранировать(л.название)}</div>
+          <div class="sub">${экранировать(л.дозировка)} · курс ${л.днейКурса} дн.</div>
+          <div class="sub">Принято: ${прин} из ${нужно}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============ ЭКСПОРТ PDF ============
+async function экспортPDF() {
+  const все = await получитьВсе('лекарства');
+
+  const win = window.open('', '_blank');
+  if (!win) {
+    alert('Разрешите всплывающие окна, чтобы экспортировать отчёт');
+    return;
+  }
+
+  win.document.write(`
+    <!DOCTYPE html>
+    <html lang="ru"><head><meta charset="UTF-8"><title>Отчёт по лекарствам</title>
+    <style>
+      body { font-family: -apple-system, sans-serif; padding: 40px; color: #000; }
+      h1 { font-size: 24px; margin-bottom: 8px; }
+      p.date { color: #666; margin-bottom: 24px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { padding: 10px; border: 1px solid #ccc; text-align: left; font-size: 14px; }
+      th { background: #f2f2f7; }
+      .summary { background: #e8f5e9; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
+    </style></head><body>
+    <h1>Отчёт по приёму лекарств</h1>
+    <p class="date">Дата: ${new Date().toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+    ${все.length === 0
+      ? '<p>Нет данных для отчёта</p>'
+      : `<div class="summary">
+          <strong>Всего лекарств: ${все.length}</strong><br>
+          Общая приверженность: ${
+            (() => {
+              let в = 0, п = 0;
+              все.forEach(л => {
+                в += л.днейКурса * л.разВДень;
+                п += Object.values(л.принято).filter(Boolean).length;
+              });
+              return в ? Math.round(п / в * 100) : 0;
+            })()
+          }%
+        </div>
+        <table>
+          <tr><th>Лекарство</th><th>Дозировка</th><th>Время</th><th>Курс</th><th>Принято</th></tr>
+          ${все.map(л => `
+            <tr>
+              <td>${экранировать(л.название)}</td>
+              <td>${экранировать(л.дозировка)}</td>
+              <td>${л.времена.join(', ')}</td>
+              <td>${л.днейКурса} дн.</td>
+              <td>${Object.values(л.принято).filter(Boolean).length} / ${л.днейКурса * л.разВДень}</td>
+            </tr>
+          `).join('')}
+        </table>`
+    }
+    <script>setTimeout(() => window.print(), 400);<\/script>
+    </body></html>
+  `);
+  win.document.close();
+}
+
+// ============ СТАРТ ============
+(async () => {
+  await открытьБД();
+
+  if ('serviceWorker' in navigator) {
+    try {
+      await navigator.serviceWorker.register('sw.js');
+    } catch (e) {
+      console.warn('SW не зарегистрирован:', e);
+    }
+  }
+
+  await обновитьВсё();
+
+  // Обновление главной каждые 30 сек
+  setInterval(обновитьБлижайшие, 30000);
+
+  // Запрос разрешения на уведомления
+  if ('Notification' in window && Notification.permission === 'default') {
+    setTimeout(запроситьРазрешение, 2000);
+  }
+})();
